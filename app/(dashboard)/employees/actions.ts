@@ -168,3 +168,32 @@ export async function createEmployeeAction(data: {
     return { success: false, error: err.message || 'Đã xảy ra lỗi khi tạo nhân viên' };
   }
 }
+
+export async function deleteEmployeeAction(employeeId: string, actorId: string) {
+  try {
+    const cookieClient = createCookieClient();
+
+    // Log the deletion action before deleting
+    await cookieClient
+      .from('audit_logs')
+      .insert({
+        actor_id: actorId,
+        action: 'delete_employee',
+        table_name: 'profiles',
+        record_id: employeeId
+      });
+
+    // We can only delete from profiles if RLS permits. 
+    const { error: deleteError } = await cookieClient
+      .from('profiles')
+      .delete()
+      .eq('id', employeeId);
+
+    if (deleteError) throw deleteError;
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error in deleteEmployeeAction:', err);
+    return { success: false, error: err.message || 'Đã xảy ra lỗi khi xóa nhân viên' };
+  }
+}

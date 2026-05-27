@@ -12,7 +12,9 @@ import {
   CalendarRange, 
   Clock, 
   History, 
-  UserCircle 
+  UserCircle,
+  ClipboardCheck,
+  Calculator
 } from 'lucide-react';
 
 export default async function DashboardLayout({
@@ -93,13 +95,29 @@ export default async function DashboardLayout({
               })}
 
               {hasAuditAccess && (
-                <Link 
-                  href="/audit-logs"
-                  className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors font-medium text-sm"
-                >
-                  <History className="h-4 w-4 text-slate-500" />
-                  <span>{navText.auditLogs}</span>
-                </Link>
+                <>
+                  <Link 
+                    href="/attendance/manage"
+                    className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors font-medium text-sm"
+                  >
+                    <ClipboardCheck className="h-4 w-4 text-slate-500" />
+                    <span>Quản lý Chấm công</span>
+                  </Link>
+                  <Link 
+                    href="/payroll"
+                    className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors font-medium text-sm"
+                  >
+                    <Calculator className="h-4 w-4 text-slate-500" />
+                    <span>Chốt công</span>
+                  </Link>
+                  <Link 
+                    href="/audit-logs"
+                    className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors font-medium text-sm"
+                  >
+                    <History className="h-4 w-4 text-slate-500" />
+                    <span>{navText.auditLogs}</span>
+                  </Link>
+                </>
               )}
             </nav>
           </div>
@@ -160,13 +178,29 @@ export default async function DashboardLayout({
               );
             })}
             {hasAuditAccess && (
-              <Link 
-                href="/audit-logs"
-                className="flex flex-col items-center justify-center flex-1 py-1 text-slate-600 hover:text-teal-700 transition-colors"
-              >
-                <History className="h-5 w-5" />
-                <span className="text-[10px] font-medium mt-1">{navText.auditLogs}</span>
-              </Link>
+              <>
+                <Link 
+                  href="/attendance/manage"
+                  className="flex flex-col items-center justify-center flex-1 py-1 text-slate-600 hover:text-teal-700 transition-colors"
+                >
+                  <ClipboardCheck className="h-5 w-5" />
+                  <span className="text-[10px] font-medium mt-1">QL Chấm công</span>
+                </Link>
+                <Link 
+                  href="/payroll"
+                  className="flex flex-col items-center justify-center flex-1 py-1 text-slate-600 hover:text-teal-700 transition-colors"
+                >
+                  <Calculator className="h-5 w-5" />
+                  <span className="text-[10px] font-medium mt-1">Chốt công</span>
+                </Link>
+                <Link 
+                  href="/audit-logs"
+                  className="flex flex-col items-center justify-center flex-1 py-1 text-slate-600 hover:text-teal-700 transition-colors"
+                >
+                  <History className="h-5 w-5" />
+                  <span className="text-[10px] font-medium mt-1">{navText.auditLogs}</span>
+                </Link>
+              </>
             )}
           </nav>
         </div>

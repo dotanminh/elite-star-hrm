@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/components/profile-provider';
 import { AvatarUpload } from '@/components/avatar-upload';
-import { createEmployeeAction } from './actions';
+import { createEmployeeAction, deleteEmployeeAction } from './actions';
+import { toast } from 'sonner';
 import { 
   employees as empText, 
   roleLabels, 
@@ -18,7 +19,8 @@ import {
   Loader2, 
   X,
   Briefcase,
-  UserCircle
+  UserCircle,
+  Trash2
 } from 'lucide-react';
 
 export default function EmployeesPage() {
@@ -38,7 +40,9 @@ export default function EmployeesPage() {
   // UI Control Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activeEmployee, setActiveEmployee] = useState<any>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<any>(null);
 
   // Form Fields
   const [fullName, setFullName] = useState('');
@@ -262,8 +266,29 @@ export default function EmployeesPage() {
       setActiveEmployee(null);
       resetForm();
       fetchEmployees();
+      toast.success('Cập nhật nhân viên thành công!');
     } catch (err: any) {
       setFormError(err.message || empText.errors.updateError);
+      toast.error('Lỗi khi cập nhật nhân viên');
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  // Delete Employee Handler
+  const handleDeleteEmployee = async () => {
+    if (!employeeToDelete) return;
+    setFormSubmitting(true);
+    try {
+      const result = await deleteEmployeeAction(employeeToDelete.id, currentUser?.id || '');
+      if (!result.success) throw new Error(result.error);
+      
+      toast.success('Đã xóa nhân viên thành công');
+      setShowDeleteConfirm(false);
+      setEmployeeToDelete(null);
+      fetchEmployees();
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi xóa nhân viên');
     } finally {
       setFormSubmitting(false);
     }
@@ -408,12 +433,25 @@ export default function EmployeesPage() {
                       </td>
                       {isHrOrAdmin && (
                         <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={() => openEdit(emp)}
-                            className="p-1.5 text-teal-600 hover:text-teal-850 rounded-md hover:bg-teal-50 transition-colors inline-flex items-center"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => openEdit(emp)}
+                              className="p-1.5 text-teal-600 hover:text-teal-850 rounded-md hover:bg-teal-50 transition-colors inline-flex items-center"
+                              title="Chỉnh sửa"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEmployeeToDelete(emp);
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="p-1.5 text-red-600 hover:text-red-800 rounded-md hover:bg-red-50 transition-colors inline-flex items-center"
+                              title="Xóa"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -440,12 +478,23 @@ export default function EmployeesPage() {
                       </div>
                     </div>
                     {isHrOrAdmin && (
-                      <button
-                        onClick={() => openEdit(emp)}
-                        className="p-2 text-teal-600 hover:text-teal-800 rounded-lg hover:bg-teal-50 border border-slate-200 transition-colors flex items-center justify-center min-w-[36px] min-h-[36px]"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openEdit(emp)}
+                          className="p-2 text-teal-600 hover:text-teal-800 rounded-lg hover:bg-teal-50 border border-slate-200 transition-colors flex items-center justify-center min-w-[36px] min-h-[36px]"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEmployeeToDelete(emp);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="p-2 text-red-600 hover:text-red-800 rounded-lg hover:bg-red-50 border border-slate-200 transition-colors flex items-center justify-center min-w-[36px] min-h-[36px]"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     )}
                   </div>
                   
@@ -895,6 +944,40 @@ export default function EmployeesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      {showDeleteConfirm && employeeToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full shadow-2xl border border-slate-200 p-6 space-y-4">
+            <h3 className="text-lg font-bold text-slate-800">Xóa nhân viên?</h3>
+            <p className="text-sm text-slate-500">
+              Bạn có chắc chắn muốn xóa nhân viên <strong className="text-slate-700">{employeeToDelete.last_name} {employeeToDelete.first_name}</strong>? 
+              Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setEmployeeToDelete(null);
+                }}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 min-h-[36px]"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteEmployee}
+                disabled={formSubmitting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 min-h-[36px]"
+              >
+                {formSubmitting && <Loader2 className="h-3 w-3 animate-spin" />}
+                Xác nhận xóa
+              </button>
+            </div>
           </div>
         </div>
       )}
