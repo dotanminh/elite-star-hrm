@@ -10,7 +10,8 @@ import {
   Download, 
   Loader2, 
   Search,
-  Users
+  Users,
+  Gift
 } from 'lucide-react';
 
 export default function PayrollPage() {
@@ -102,16 +103,52 @@ export default function PayrollPage() {
         return { ...log, workedHours: diffHours, validDay };
       });
 
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      let totalDaysInPeriod = 0;
+      let missingDates: Date[] = [];
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        totalDaysInPeriod++;
+        const dateStr = d.toISOString().split('T')[0];
+        const logForDate = empLogs.find(l => l.work_date === dateStr);
+        
+        let isValid = false;
+        if (logForDate && logForDate.check_in && logForDate.check_out) {
+          const checkIn = new Date(logForDate.check_in);
+          const checkOut = new Date(logForDate.check_out);
+          const diffHours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
+          if (diffHours >= 7) {
+            isValid = true;
+          }
+        }
+        
+        if (!isValid) {
+          missingDates.push(new Date(d));
+        }
+      }
+
+      // Check conditions for 500k bonus
+      // Rule: max 2 missing days, and NONE of the missing days can be Saturday (6) or Sunday (0).
+      const hasWeekendAbsence = missingDates.some(d => d.getDay() === 0 || d.getDay() === 6);
+      let bonus = 0;
+      if (missingDates.length <= 2 && !hasWeekendAbsence) {
+        bonus = 500000; // 500,000 VNĐ
+      }
+
       return {
         ...emp,
         totalValidDays,
         totalInvalidDays,
         totalHours: totalHours.toFixed(1),
         logCount: empLogs.length,
-        dailyDetails
+        dailyDetails,
+        totalDaysInPeriod,
+        missingDaysCount: missingDates.length,
+        bonus
       };
     });
-  }, [employees, logs]);
+  }, [employees, logs, startDate, endDate]);
 
   const filteredPayroll = payrollData.filter((data) => {
     const fullName = `${data.last_name || ''} ${data.first_name || ''}`.toLowerCase();
@@ -204,6 +241,7 @@ export default function PayrollPage() {
           <ul className="text-[11px] space-y-1 text-slate-600 font-medium">
             <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Dưới 7 tiếng (hoặc chỉ làm nửa ngày) = <b className="text-slate-800">0 công</b></li>
             <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Đủ từ 7 tiếng trở lên = <b className="text-slate-800">1 công</b></li>
+            <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Thưởng chuyên cần <b className="text-blue-700">500.000đ</b> (Nghỉ &lt;= 2 ngày & không nghỉ T7, CN)</li>
           </ul>
         </div>
       </div>
@@ -218,8 +256,9 @@ export default function PayrollPage() {
                 <th className="py-4 px-4">Phòng ban</th>
                 <th className="py-4 px-4 text-center">Tổng lượt chấm</th>
                 <th className="py-4 px-4 text-center">Giờ làm (Tích lũy)</th>
-                <th className="py-4 px-4 text-center">Lượt không hợp lệ (&lt; 7h)</th>
-                <th className="py-4 px-4 text-center text-emerald-700 font-bold bg-emerald-50/50">Ngày công hợp lệ</th>
+                <th className="py-4 px-4 text-center">Ngày vắng/Nghỉ</th>
+                <th className="py-4 px-4 text-center text-emerald-700 font-bold bg-emerald-50/50">Công hợp lệ</th>
+                <th className="py-4 px-4 text-right text-blue-700 font-bold bg-blue-50/50">Thưởng chuyên cần</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -249,16 +288,26 @@ export default function PayrollPage() {
                       {emp.totalHours} <span className="text-[10px] text-slate-400">giờ</span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {emp.totalInvalidDays > 0 ? (
-                        <span className="inline-flex items-center justify-center bg-red-100 text-red-700 font-bold w-6 h-6 rounded-full text-[11px]">
-                          {emp.totalInvalidDays}
+                      {emp.missingDaysCount > 0 ? (
+                        <span className="inline-flex items-center justify-center bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-md text-[11px]">
+                          {emp.missingDaysCount} ngày
                         </span>
                       ) : (
                         <span className="text-slate-300">-</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center font-black text-emerald-700 text-base bg-emerald-50/30">
-                      {emp.totalValidDays}
+                    <td className="py-3 px-4 text-center font-black text-emerald-700 text-base bg-emerald-50/30 border-l border-emerald-100">
+                      {emp.totalValidDays} / {emp.totalDaysInPeriod}
+                    </td>
+                    <td className="py-3 px-4 text-right font-black text-blue-700 text-base bg-blue-50/30 border-l border-blue-100">
+                      {emp.bonus > 0 ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <Gift className="h-4 w-4 text-blue-500" />
+                          <span>500.000₫</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-300 text-sm font-medium">0₫</span>
+                      )}
                     </td>
                   </tr>
                 ))
