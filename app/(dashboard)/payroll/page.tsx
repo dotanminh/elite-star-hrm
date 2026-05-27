@@ -14,15 +14,49 @@ import {
   Gift
 } from 'lucide-react';
 
+// Helper to get default payroll period
+const getDefaultPayrollPeriod = () => {
+  const date = new Date();
+  const currentDay = date.getDate();
+  const currentMonth = date.getMonth();
+  const currentYear = date.getFullYear();
+  
+  let startMonth, startYear, endMonth, endYear;
+  
+  if (currentDay > 28) {
+    startMonth = currentMonth;
+    startYear = currentYear;
+    endMonth = currentMonth + 1;
+    endYear = currentYear;
+    if (endMonth > 11) {
+      endMonth = 0;
+      endYear++;
+    }
+  } else {
+    endMonth = currentMonth;
+    endYear = currentYear;
+    startMonth = currentMonth - 1;
+    startYear = currentYear;
+    if (startMonth < 0) {
+      startMonth = 11;
+      startYear--;
+    }
+  }
+  
+  // start from 29th, end on 28th
+  // We need to account for timezones safely by formatting components manually
+  const startStr = `${startYear}-${String(startMonth + 1).padStart(2, '0')}-29`;
+  const endStr = `${endYear}-${String(endMonth + 1).padStart(2, '0')}-28`;
+  return { startDate: startStr, endDate: endStr };
+};
+
 export default function PayrollPage() {
   const { profile: currentUser } = useProfile();
   const supabase = createClient();
 
-  // Chu kỳ đặc biệt tháng đầu: 28/04 -> 31/05
-  // Nếu là năm khác, ta có thể set động, nhưng ở đây set cố định năm 2024 làm ví dụ hoặc lấy năm hiện tại.
-  const currentYear = new Date().getFullYear();
-  const [startDate, setStartDate] = useState(`${currentYear}-04-28`);
-  const [endDate, setEndDate] = useState(`${currentYear}-05-31`);
+  const defaultPeriod = getDefaultPayrollPeriod();
+  const [startDate, setStartDate] = useState(defaultPeriod.startDate);
+  const [endDate, setEndDate] = useState(defaultPeriod.endDate);
   
   const [employees, setEmployees] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
