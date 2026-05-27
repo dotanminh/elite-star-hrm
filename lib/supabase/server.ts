@@ -19,14 +19,14 @@ export function createClient() {
         },
         set(name: string, value: string, options: any) {
           try {
-            cookieStore.set(name, value, { ...options, secure: false });
+            cookieStore.set(name, value, { ...options, secure: process.env.NODE_ENV === 'production' });
           } catch {
             // Ignored from Server Components
           }
         },
         remove(name: string, options: any) {
           try {
-            cookieStore.set(name, '', { ...options, maxAge: 0, secure: false });
+            cookieStore.set(name, '', { ...options, maxAge: 0, secure: process.env.NODE_ENV === 'production' });
           } catch {
             // Ignored from Server Components
           }
@@ -37,7 +37,7 @@ export function createClient() {
         setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, { ...options, secure: false })
+              cookieStore.set(name, value, { ...options, secure: process.env.NODE_ENV === 'production' })
             );
           } catch {
             // The `setAll` method was called from a Server Component.

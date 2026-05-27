@@ -1,11 +1,10 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ShieldCheck, Loader2 } from 'lucide-react';
+import { login as loginText } from '@/lib/i18n/vi';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,18 +29,18 @@ export default function LoginPage() {
     setEmailErrorFormat(null);
 
     if (!email) {
-      setEmailError('Email is required');
+      setEmailError(loginText.errors.emailRequired);
       valid = false;
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        setEmailErrorFormat('Invalid email format');
+        setEmailErrorFormat(loginText.errors.emailInvalid);
         valid = false;
       }
     }
 
     if (!password) {
-      setPasswordError('Password is required');
+      setPasswordError(loginText.errors.passwordRequired);
       valid = false;
     }
 
@@ -67,7 +66,7 @@ export default function LoginPage() {
           error.message.toLowerCase().includes('invalid login credentials') || 
           error.message.toLowerCase().includes('invalid credentials')
         ) {
-          setErrorMsg('Invalid credentials');
+          setErrorMsg(loginText.errors.invalidCredentials);
         } else {
           setErrorMsg(error.message);
         }
@@ -78,7 +77,7 @@ export default function LoginPage() {
       router.push('/dashboard');
       router.refresh();
     } catch (err: any) {
-      setErrorMsg(err.message || 'An unexpected error occurred');
+      setErrorMsg(err.message || loginText.errors.unexpected);
       setLoading(false);
     }
   };
@@ -90,8 +89,8 @@ export default function LoginPage() {
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-700 border border-teal-100">
             <ShieldCheck className="h-7 w-7" />
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-800">Elite Star HRM</h2>
-          <p className="text-sm text-slate-500">Employee Management &amp; Check-in Console</p>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-800">{loginText.title}</h2>
+          <p className="text-sm text-slate-500">{loginText.subtitle}</p>
         </div>
 
         {errorMsg && (
@@ -107,7 +106,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
-                Email Address
+                {loginText.emailLabel}
               </label>
               <input
                 id="email"
@@ -123,7 +122,7 @@ export default function LoginPage() {
                 className={`block w-full rounded-lg border bg-white px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-teal-700 focus:outline-none focus:ring-1 focus:ring-teal-700 transition-colors ${
                   emailError || emailErrorFormat ? 'border-red-500' : 'border-slate-300'
                 }`}
-                placeholder="toiminhvuive@gmail.com"
+                placeholder={loginText.emailPlaceholder}
               />
               {emailError && (
                 <p data-testid="email-error" className="mt-1 text-xs text-red-600">
@@ -139,7 +138,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
-                Password
+                {loginText.passwordLabel}
               </label>
               <input
                 id="password"
@@ -154,7 +153,7 @@ export default function LoginPage() {
                 className={`block w-full rounded-lg border bg-white px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-teal-700 focus:outline-none focus:ring-1 focus:ring-teal-700 transition-colors ${
                   passwordError ? 'border-red-500' : 'border-slate-300'
                 }`}
-                placeholder="••••••••"
+                placeholder={loginText.passwordPlaceholder}
               />
               {passwordError && (
                 <p data-testid="password-error" className="mt-1 text-xs text-red-600">
@@ -173,17 +172,17 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  {loginText.signingIn}
                 </>
               ) : (
-                'Sign In'
+                loginText.signIn
               )}
             </button>
           </div>
         </form>
 
         <div className="text-center text-xs text-slate-400">
-          Secure, authenticated portal. Elite Star Company Policy applies.
+          {loginText.footer}
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { ProfileProvider, UserProfile } from '@/components/profile-provider';
 import { LogoutButton } from '@/components/logout-button';
+import { nav as navText, roleLabels } from '@/lib/i18n/vi';
 import { 
   LayoutDashboard, 
   Users, 
@@ -53,13 +54,14 @@ export default async function DashboardLayout({
   };
 
   const navItems = [
-    { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-    { href: '/employees', label: 'Employees', icon: Users },
-    { href: '/leave', label: 'Leave Requests', icon: CalendarRange },
-    { href: '/attendance', label: 'Attendance', icon: Clock },
+    { href: '/dashboard', label: navText.overview, icon: LayoutDashboard },
+    { href: '/employees', label: navText.employees, icon: Users },
+    { href: '/leave', label: navText.leaveRequests, icon: CalendarRange },
+    { href: '/attendance', label: navText.attendance, icon: Clock },
   ];
 
   const hasAuditAccess = typedProfile.role === 'admin' || typedProfile.role === 'hr';
+  const displayRole = roleLabels[typedProfile.role] || typedProfile.role;
 
   return (
     <ProfileProvider initialProfile={typedProfile}>
@@ -73,8 +75,8 @@ export default async function DashboardLayout({
                 <Clock className="h-6 w-6" />
               </div>
               <div>
-                <span className="text-lg font-bold tracking-tight text-teal-900 block">Elite Star</span>
-                <span className="text-[10px] text-teal-600 font-semibold tracking-wider uppercase block">HRM System</span>
+                <span className="text-lg font-bold tracking-tight text-teal-900 block">{navText.brandName}</span>
+                <span className="text-[10px] text-teal-600 font-semibold tracking-wider uppercase block">{navText.brandSubtitle}</span>
               </div>
             </div>
             
@@ -99,7 +101,7 @@ export default async function DashboardLayout({
                   className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors font-medium text-sm"
                 >
                   <History className="h-4 w-4 text-slate-500" />
-                  <span>Audit Logs</span>
+                  <span>{navText.auditLogs}</span>
                 </Link>
               )}
             </nav>
@@ -114,7 +116,7 @@ export default async function DashboardLayout({
                   {typedProfile.first_name} {typedProfile.last_name}
                 </p>
                 <p className="text-[10px] text-teal-700 font-bold uppercase tracking-wider">
-                  {typedProfile.role}
+                  {displayRole}
                 </p>
               </div>
             </div>
@@ -132,11 +134,11 @@ export default async function DashboardLayout({
               <div className="bg-teal-700 p-1.5 rounded text-white">
                 <Clock className="h-5 w-5" />
               </div>
-              <span className="font-bold text-teal-900 text-sm">Elite Star HRM</span>
+              <span className="font-bold text-teal-900 text-sm">{navText.brandName}</span>
             </div>
             <div className="flex items-center space-x-3">
-              <span className="text-xs font-semibold px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full border border-teal-200 uppercase">
-                {typedProfile.role}
+              <span className="text-xs font-semibold px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full border border-teal-200 uppercase text-[10px]">
+                {displayRole}
               </span>
               <LogoutButton className="p-1 px-2 text-xs !bg-transparent !w-auto" showText={false} />
             </div>
@@ -159,7 +161,7 @@ export default async function DashboardLayout({
                   className="flex flex-col items-center justify-center flex-1 py-1 text-slate-600 hover:text-teal-700 transition-colors"
                 >
                   <IconComponent className="h-5 w-5" />
-                  <span className="text-[10px] font-medium mt-1">{item.label.split(' ')[0]}</span>
+                  <span className="text-[10px] font-medium mt-1">{item.label}</span>
                 </Link>
               );
             })}
@@ -169,7 +171,7 @@ export default async function DashboardLayout({
                 className="flex flex-col items-center justify-center flex-1 py-1 text-slate-600 hover:text-teal-700 transition-colors"
               >
                 <History className="h-5 w-5" />
-                <span className="text-[10px] font-medium mt-1">Audits</span>
+                <span className="text-[10px] font-medium mt-1">{navText.auditLogs}</span>
               </Link>
             )}
           </nav>

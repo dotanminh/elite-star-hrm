@@ -4,6 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/components/profile-provider';
 import { 
+  auditLogs as logsText, 
+  auditActionLabels, 
+  common 
+} from '@/lib/i18n/vi';
+import { 
   History, 
   Search, 
   Loader2, 
@@ -48,7 +53,9 @@ export default function AuditLogsPage() {
   const filteredLogs = logs.filter((log) => {
     const actorName = `${log.profiles?.first_name || ''} ${log.profiles?.last_name || ''}`.toLowerCase();
     const actorEmail = (log.profiles?.email || '').toLowerCase();
-    const actionName = (log.action || '').toLowerCase();
+    const rawAction = log.action || '';
+    const translatedAction = (auditActionLabels[rawAction] || rawAction).toLowerCase();
+    const actionName = rawAction.toLowerCase();
     const tableName = (log.table_name || '').toLowerCase();
     
     const searchString = searchQuery.toLowerCase();
@@ -56,6 +63,7 @@ export default function AuditLogsPage() {
       actorName.includes(searchString) || 
       actorEmail.includes(searchString) || 
       actionName.includes(searchString) || 
+      translatedAction.includes(searchString) ||
       tableName.includes(searchString);
 
     const matchesAction = selectedAction ? log.action === selectedAction : true;
@@ -71,8 +79,8 @@ export default function AuditLogsPage() {
       
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">System Audit Logs</h1>
-        <p className="text-sm text-slate-500">Immutable ledger tracking administrative actions, user creation, and leave decisions.</p>
+        <h1 className="text-2xl font-bold text-slate-900">{logsText.title}</h1>
+        <p className="text-sm text-slate-500">{logsText.subtitle}</p>
       </div>
 
       {/* Filter Bar */}
@@ -81,7 +89,7 @@ export default function AuditLogsPage() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search audits by actor, table, or action..."
+            placeholder={logsText.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 pr-4 py-2 w-full rounded-lg border border-slate-300 text-sm focus:border-teal-700 focus:outline-none focus:ring-1 focus:ring-teal-700 bg-white"
@@ -94,9 +102,9 @@ export default function AuditLogsPage() {
             onChange={(e) => setSelectedAction(e.target.value)}
             className="border border-slate-300 rounded-lg py-2 px-3 text-xs bg-white focus:border-teal-700 focus:outline-none"
           >
-            <option value="">All Action Types</option>
+            <option value="">{logsText.allActionTypes}</option>
             {uniqueActions.map((act: any) => (
-              <option key={act} value={act}>{act}</option>
+              <option key={act} value={act}>{auditActionLabels[act] || act}</option>
             ))}
           </select>
         </div>
@@ -107,7 +115,7 @@ export default function AuditLogsPage() {
         {loading ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-2">
             <Loader2 className="h-8 w-8 text-teal-700 animate-spin" />
-            <span className="text-sm text-slate-500 font-medium">Reading secure audit ledger...</span>
+            <span className="text-sm text-slate-500 font-medium">{logsText.loading}</span>
           </div>
         ) : filteredLogs.length > 0 ? (
           <div className="divide-y divide-slate-100">
@@ -131,14 +139,14 @@ export default function AuditLogsPage() {
                   {/* Metadata Indicators */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="px-2 py-0.5 rounded-full font-bold uppercase text-[9px] bg-teal-50 text-teal-700 border border-teal-200">
-                      {log.action}
+                      {auditActionLabels[log.action] || log.action}
                     </span>
                     <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium flex items-center gap-1">
                       <FileText className="h-3 w-3 text-slate-400" /> {log.table_name}
                     </span>
                     <span className="text-slate-450 text-[10px] flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" />
-                      {new Date(log.created_at).toLocaleString()}
+                      {new Date(log.created_at).toLocaleString('vi-VN')}
                     </span>
                   </div>
 
@@ -150,25 +158,25 @@ export default function AuditLogsPage() {
                     
                     {/* Old Values */}
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-slate-400 mb-1">Old State values</span>
+                      <span className="block text-[9px] uppercase font-bold text-slate-400 mb-1">{logsText.oldState}</span>
                       {log.old_values ? (
                         <pre className="overflow-x-auto p-2 bg-white rounded border border-slate-100 leading-normal max-h-36">
                           {JSON.stringify(log.old_values, null, 2)}
                         </pre>
                       ) : (
-                        <span className="text-slate-400 italic">No previous state (Creation event)</span>
+                        <span className="text-slate-400 italic">{logsText.noOldState}</span>
                       )}
                     </div>
 
                     {/* New Values */}
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-slate-400 mb-1">New State values</span>
+                      <span className="block text-[9px] uppercase font-bold text-slate-400 mb-1">{logsText.newState}</span>
                       {log.new_values ? (
                         <pre className="overflow-x-auto p-2 bg-white rounded border border-slate-100 leading-normal max-h-36">
                           {JSON.stringify(log.new_values, null, 2)}
                         </pre>
                       ) : (
-                        <span className="text-slate-400 italic">No new state values (Deletion event)</span>
+                        <span className="text-slate-400 italic">{logsText.noNewState}</span>
                       )}
                     </div>
 
@@ -180,7 +188,7 @@ export default function AuditLogsPage() {
           </div>
         ) : (
           <div className="p-12 text-center text-slate-400 italic text-xs">
-            No system audit trails found matching the filter search criteria.
+            {logsText.noResults}
           </div>
         )}
       </div>

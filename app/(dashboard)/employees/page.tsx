@@ -3,14 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/components/profile-provider';
+import { createEmployeeAction } from './actions';
+import { 
+  employees as empText, 
+  roleLabels, 
+  statusLabels, 
+  common 
+} from '@/lib/i18n/vi';
 import { 
   Search, 
-  Filter, 
   UserPlus, 
   Edit2, 
   Loader2, 
   X,
-  CheckCircle,
   Briefcase
 } from 'lucide-react';
 
@@ -43,6 +48,15 @@ export default function EmployeesPage() {
   const [titleId, setTitleId] = useState('');
   const [status, setStatus] = useState('active');
   const [hireDate, setHireDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Extended Profile Fields
+  const [employeeCode, setEmployeeCode] = useState('');
+  const [gender, setGender] = useState('male');
+  const [educationLevel, setEducationLevel] = useState('');
+  const [address, setAddress] = useState('');
+  const [hometown, setHometown] = useState('');
+  const [biography, setBiography] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const [formError, setFormError] = useState<string | null>(null);
   const [formSubmitting, setFormSubmitting] = useState(false);
@@ -100,6 +114,13 @@ export default function EmployeesPage() {
     setTitleId('');
     setStatus('active');
     setHireDate(new Date().toISOString().split('T')[0]);
+    setEmployeeCode('');
+    setGender('male');
+    setEducationLevel('');
+    setAddress('');
+    setHometown('');
+    setBiography('');
+    setAvatarFile(null);
     setFormError(null);
   };
 
@@ -114,6 +135,13 @@ export default function EmployeesPage() {
     setTitleId(emp.title_id || '');
     setStatus(emp.status || 'active');
     setHireDate(emp.hire_date || '');
+    setEmployeeCode(emp.employee_code || '');
+    setGender(emp.gender || 'male');
+    setEducationLevel(emp.education_level || '');
+    setAddress(emp.address || '');
+    setHometown(emp.hometown || '');
+    setBiography(emp.biography || '');
+    setAvatarFile(null);
     setShowEditModal(true);
   };
 
@@ -123,67 +151,52 @@ export default function EmployeesPage() {
     setFormError(null);
 
     if (!email || !firstName || !lastName) {
-      setFormError('Email, First Name, and Last Name are required');
+      setFormError(empText.errors.emailFirstLastRequired);
       return;
     }
 
     setFormSubmitting(true);
     try {
-      // 1. Sign up the user in Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const result = await createEmployeeAction({
         email,
-        password: 'password123', // Temporary default password
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            role,
-            phone,
-            hire_date: hireDate
-          }
-        }
+        firstName,
+        lastName,
+        phone,
+        role,
+        departmentId,
+        titleId,
+        status,
+        hireDate,
+        employeeCode,
+        gender,
+        educationLevel,
+        address,
+        hometown,
+        biography,
+        actorId: currentUser?.id || ''
       });
 
-      if (authError) throw authError;
+      if (!result.success) {
+        throw new Error(result.error);
+      }
 
-      const newUserId = authData.user?.id;
-      if (!newUserId) throw new Error('User creation returned empty ID');
-
-      // 2. Associate department and title (since triggers sync first name/last name/role, we update the remaining fields)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          department_id: departmentId || null,
-          title_id: titleId || null,
-        })
-        .eq('id', newUserId);
-
-      if (profileError) throw profileError;
-
-      // 3. Write record into Audit Logs
-      await supabase.from('audit_logs').insert({
-        actor_id: currentUser?.id,
-        action: 'create_employee',
-        table_name: 'profiles',
-        record_id: newUserId,
-        new_values: {
-          email,
-          first_name: firstName,
-          last_name: lastName,
-          role,
-          phone,
-          department_id: departmentId || null,
-          title_id: titleId || null,
-          status,
-          hire_date: hireDate
+      if (avatarFile && result.userId) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const filePath = `${result.userId}-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, avatarFile);
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+          await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', result.userId);
+        } else {
+          console.error('Lỗi upload avatar:', uploadError);
         }
-      });
+      }
 
       setShowAddModal(false);
       resetForm();
       fetchEmployees();
     } catch (err: any) {
-      setFormError(err.message || 'An error occurred during employee creation');
+      setFormError(err.message || empText.errors.creationError);
     } finally {
       setFormSubmitting(false);
     }
@@ -195,7 +208,7 @@ export default function EmployeesPage() {
     setFormError(null);
 
     if (!firstName || !lastName) {
-      setFormError('First Name and Last Name are required');
+      setFormError(empText.errors.firstLastRequired);
       return;
     }
 
@@ -209,7 +222,13 @@ export default function EmployeesPage() {
         department_id: activeEmployee.department_id,
         title_id: activeEmployee.title_id,
         status: activeEmployee.status,
-        hire_date: activeEmployee.hire_date
+        hire_date: activeEmployee.hire_date,
+        employee_code: activeEmployee.employee_code,
+        gender: activeEmployee.gender,
+        education_level: activeEmployee.education_level,
+        address: activeEmployee.address,
+        hometown: activeEmployee.hometown,
+        biography: activeEmployee.biography
       };
 
       const newValues = {
@@ -220,8 +239,27 @@ export default function EmployeesPage() {
         department_id: departmentId || null,
         title_id: titleId || null,
         status,
-        hire_date: hireDate
+        hire_date: hireDate,
+        employee_code: employeeCode || null,
+        gender: gender || null,
+        education_level: educationLevel || null,
+        address: address || null,
+        hometown: hometown || null,
+        biography: biography || null,
+        avatar_url: activeEmployee.avatar_url
       };
+
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const filePath = `${activeEmployee.id}-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, avatarFile);
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+          newValues.avatar_url = publicUrl;
+        } else {
+          console.error('Lỗi upload avatar:', uploadError);
+        }
+      }
 
       // Update in database
       const { error: updateError } = await supabase
@@ -246,7 +284,7 @@ export default function EmployeesPage() {
       resetForm();
       fetchEmployees();
     } catch (err: any) {
-      setFormError(err.message || 'An error occurred during updating employee info');
+      setFormError(err.message || empText.errors.updateError);
     } finally {
       setFormSubmitting(false);
     }
@@ -271,8 +309,8 @@ export default function EmployeesPage() {
       {/* Header Panel */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Employee Directory</h1>
-          <p className="text-sm text-slate-500">Search and manage operational staff, trainers, and chefs.</p>
+          <h1 className="text-2xl font-bold text-slate-900">{empText.title}</h1>
+          <p className="text-sm text-slate-500">{empText.subtitle}</p>
         </div>
         {isHrOrAdmin && (
           <button
@@ -280,10 +318,10 @@ export default function EmployeesPage() {
               resetForm();
               setShowAddModal(true);
             }}
-            className="flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors"
+            className="flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors min-h-[44px]"
           >
             <UserPlus className="h-4 w-4" />
-            Add Employee
+            {empText.addEmployee}
           </button>
         )}
       </div>
@@ -294,7 +332,7 @@ export default function EmployeesPage() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder={empText.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 pr-4 py-2 w-full rounded-lg border border-slate-300 text-sm focus:border-teal-700 focus:outline-none focus:ring-1 focus:ring-teal-700 bg-white"
@@ -309,7 +347,7 @@ export default function EmployeesPage() {
             onChange={(e) => setSelectedDept(e.target.value)}
             className="border border-slate-300 rounded-lg py-2 px-3 text-xs bg-white focus:border-teal-700 focus:outline-none"
           >
-            <option value="">All Departments</option>
+            <option value="">{empText.allDepartments}</option>
             {departments.map((dept) => (
               <option key={dept.id} value={dept.id}>{dept.name}</option>
             ))}
@@ -321,7 +359,7 @@ export default function EmployeesPage() {
             onChange={(e) => setSelectedTitle(e.target.value)}
             className="border border-slate-300 rounded-lg py-2 px-3 text-xs bg-white focus:border-teal-700 focus:outline-none"
           >
-            <option value="">All Positions</option>
+            <option value="">{empText.allPositions}</option>
             {titles.map((job) => (
               <option key={job.id} value={job.id}>{job.name}</option>
             ))}
@@ -330,76 +368,128 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {/* Employees Grid Table */}
+      {/* Employees Grid Table & Cards */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         {loading ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-2">
             <Loader2 className="h-8 w-8 text-teal-700 animate-spin" />
-            <span className="text-sm text-slate-500 font-medium">Fetching roster records...</span>
+            <span className="text-sm text-slate-500 font-medium">{empText.fetchingRecords}</span>
           </div>
         ) : filteredEmployees.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs text-slate-650">
-              <thead>
-                <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                  <th className="py-3.5 px-4">Name</th>
-                  <th className="py-3.5 px-4">Contact</th>
-                  <th className="py-3.5 px-4">Department &amp; Title</th>
-                  <th className="py-3.5 px-4">Status &amp; Role</th>
-                  <th className="py-3.5 px-4">Hire Date</th>
-                  {isHrOrAdmin && <th className="py-3.5 px-4 text-center">Action</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredEmployees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      {emp.first_name} {emp.last_name}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-slate-800">{emp.email}</div>
-                      {emp.phone && <div className="text-[10px] text-slate-400 mt-0.5">{emp.phone}</div>}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1">
-                        <Briefcase className="h-3 w-3 text-slate-400" />
-                        <span className="font-semibold text-slate-800">{emp.departments?.name || 'Unassigned'}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{emp.titles?.name || 'No Position'}</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                          emp.status === 'active' ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-red-50 text-red-700 border-red-200'
-                        }`}>
-                          {emp.status}
-                        </span>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                          {emp.role}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-500">
-                      {emp.hire_date}
-                    </td>
-                    {isHrOrAdmin && (
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => openEdit(emp)}
-                          className="p-1.5 text-teal-600 hover:text-teal-800 rounded-md hover:bg-teal-50 transition-colors inline-flex items-center"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    )}
+          <>
+            {/* Desktop Table View (>= 800px) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs text-slate-650">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                    <th className="py-3.5 px-4">{empText.name}</th>
+                    <th className="py-3.5 px-4">{empText.contact}</th>
+                    <th className="py-3.5 px-4">{empText.departmentTitle}</th>
+                    <th className="py-3.5 px-4">{empText.statusRole}</th>
+                    <th className="py-3.5 px-4">{empText.hireDate}</th>
+                    {isHrOrAdmin && <th className="py-3.5 px-4 text-center">{empText.action}</th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredEmployees.map((emp) => (
+                    <tr key={emp.id} className="hover:bg-slate-50/50">
+                      <td className="py-3 px-4 font-semibold text-slate-900">
+                        {emp.first_name} {emp.last_name}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-slate-800">{emp.email}</div>
+                        {emp.phone && <div className="text-[10px] text-slate-400 mt-0.5">{emp.phone}</div>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1">
+                          <Briefcase className="h-3 w-3 text-slate-400" />
+                          <span className="font-semibold text-slate-800">{emp.departments?.name || empText.unassigned}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">{emp.titles?.name || empText.noPosition}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                            emp.status === 'active' ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-red-50 text-red-700 border-red-200'
+                          }`}>
+                            {statusLabels[emp.status] || emp.status}
+                          </span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                            {roleLabels[emp.role] || emp.role}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 font-medium text-slate-500">
+                        {emp.hire_date}
+                      </td>
+                      {isHrOrAdmin && (
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={() => openEdit(emp)}
+                            className="p-1.5 text-teal-600 hover:text-teal-850 rounded-md hover:bg-teal-50 transition-colors inline-flex items-center"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card-Based View (< 800px) */}
+            <div className="block md:hidden divide-y divide-slate-100">
+              {filteredEmployees.map((emp) => (
+                <div key={emp.id} className="p-4 hover:bg-slate-50/40 space-y-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">{emp.first_name} {emp.last_name}</h3>
+                      <p className="text-xs text-slate-500">{emp.email}</p>
+                      {emp.phone && <p className="text-[10px] text-slate-400 mt-0.5">{emp.phone}</p>}
+                    </div>
+                    {isHrOrAdmin && (
+                      <button
+                        onClick={() => openEdit(emp)}
+                        className="p-2 text-teal-600 hover:text-teal-800 rounded-lg hover:bg-teal-50 border border-slate-200 transition-colors flex items-center justify-center min-w-[36px] min-h-[36px]"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-semibold flex items-center gap-1">
+                      <Briefcase className="h-3 w-3 text-slate-400" />
+                      {emp.departments?.name || empText.unassigned}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {emp.titles?.name || empText.noPosition}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                        emp.status === 'active' ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-red-50 text-red-700 border-red-200'
+                      }`}>
+                        {statusLabels[emp.status] || emp.status}
+                      </span>
+                      <span className="text-[10px] uppercase font-bold text-slate-450 tracking-wider">
+                        {roleLabels[emp.role] || emp.role}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {emp.hire_date}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
-          <div className="p-12 text-center text-slate-500">
-            No employees found matching the given filters.
+          <div className="p-12 text-center text-slate-500 italic text-xs">
+            {empText.noResults}
           </div>
         )}
       </div>
@@ -409,111 +499,111 @@ export default function EmployeesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100">
-              <h2 className="text-md font-bold text-slate-850">Add New Employee Profile</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-450 hover:text-slate-650">
+              <h2 className="text-md font-bold text-slate-800">{empText.addTitle}</h2>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <form onSubmit={handleAddEmployee} className="p-6 space-y-4">
               {formError && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-650">
+                <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-755 font-semibold">
                   {formError}
                 </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Email Address</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.emailAddress}</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
-                    placeholder="emp@elitestar.com"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 placeholder-slate-400 min-h-[40px]"
+                    placeholder="emp@elitestar.vn"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Role Type</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.roleType}</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   >
-                    <option value="employee">Employee (General Staff)</option>
-                    <option value="manager">Manager (Department Head)</option>
-                    <option value="hr">HR Specialist</option>
+                    <option value="employee">{empText.roleEmployee}</option>
+                    <option value="manager">{empText.roleManager}</option>
+                    <option value="hr">{empText.roleHR}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">First Name</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.firstName}</label>
                   <input
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
-                    placeholder="John"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    placeholder="Minh"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Last Name</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.lastName}</label>
                   <input
                     type="text"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
-                    placeholder="Doe"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    placeholder="Đỗ"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Phone Number</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.phoneNumber}</label>
                   <input
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                     placeholder="0987654321"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Hire Date</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.hireDate}</label>
                   <input
                     type="date"
                     value={hireDate}
                     onChange={(e) => setHireDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Department</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.department}</label>
                   <select
                     value={departmentId}
                     onChange={(e) => setDepartmentId(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   >
-                    <option value="">Unassigned</option>
+                    <option value="">{empText.unassigned}</option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Job Title</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.jobTitle}</label>
                   <select
                     value={titleId}
                     onChange={(e) => setTitleId(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   >
-                    <option value="">No Title</option>
+                    <option value="">{empText.noTitle}</option>
                     {titles
                       .filter((t) => !departmentId || t.department_id === departmentId)
                       .map((job) => (
@@ -523,21 +613,104 @@ export default function EmployeesPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Mã NV / Giới tính</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={employeeCode}
+                      onChange={(e) => setEmployeeCode(e.target.value)}
+                      className="w-1/2 px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                      placeholder="Tự động nếu để trống"
+                    />
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="w-1/2 px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    >
+                      <option value="male">Nam</option>
+                      <option value="female">Nữ</option>
+                      <option value="other">Khác</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Ảnh đại diện (Avatar)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setAvatarFile(e.target.files[0]);
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px] file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Trình độ học vấn</label>
+                  <input
+                    type="text"
+                    value={educationLevel}
+                    onChange={(e) => setEducationLevel(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    placeholder="Đại học, Cao đẳng..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Quê quán</label>
+                    <input
+                      type="text"
+                      value={hometown}
+                      onChange={(e) => setHometown(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Địa chỉ thường trú</label>
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Ghi chú nhân thân</label>
+                  <textarea
+                    value={biography}
+                    onChange={(e) => setBiography(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 placeholder-slate-400"
+                    placeholder="Lý lịch, thông tin thêm..."
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50"
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 min-h-[36px]"
                 >
-                  Cancel
+                  {empText.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="px-4 py-2 bg-teal-700 hover:bg-teal-850 text-white rounded-lg text-xs font-semibold flex items-center gap-2"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-850 text-white rounded-lg text-xs font-semibold flex items-center gap-2 min-h-[36px]"
                 >
                   {formSubmitting && <Loader2 className="h-3 w-3 animate-spin" />}
-                  Register &amp; Save
+                  {empText.registerSave}
                 </button>
               </div>
             </form>
@@ -550,107 +723,107 @@ export default function EmployeesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100">
-              <h2 className="text-md font-bold text-slate-855">Edit Employee Profile</h2>
-              <button onClick={() => setShowEditModal(false)} className="text-slate-450 hover:text-slate-650">
+              <h2 className="text-md font-bold text-slate-800">{empText.editTitle}</h2>
+              <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <form onSubmit={handleEditEmployee} className="p-6 space-y-4">
               {formError && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-650">
+                <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-650 font-semibold">
                   {formError}
                 </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Email (Immutable)</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.emailImmutable}</label>
                   <input
                     type="email"
                     value={activeEmployee?.email || ''}
                     disabled
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 text-slate-500 border-slate-200 cursor-not-allowed"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 text-slate-500 border-slate-200 cursor-not-allowed min-h-[40px]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Status</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.statusLabel}</label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   >
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
-                    <option value="terminated">Terminated</option>
+                    <option value="active">{statusLabels.active}</option>
+                    <option value="suspended">{statusLabels.suspended}</option>
+                    <option value="terminated">{statusLabels.terminated}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">First Name</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.firstName}</label>
                   <input
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Last Name</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.lastName}</label>
                   <input
                     type="text"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Phone Number</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.phoneNumber}</label>
                   <input
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Hire Date</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.hireDate}</label>
                   <input
                     type="date"
                     value={hireDate}
                     onChange={(e) => setHireDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Department</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.department}</label>
                   <select
                     value={departmentId}
                     onChange={(e) => setDepartmentId(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   >
-                    <option value="">Unassigned</option>
+                    <option value="">{empText.unassigned}</option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Job Title</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.jobTitle}</label>
                   <select
                     value={titleId}
                     onChange={(e) => setTitleId(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   >
-                    <option value="">No Title</option>
+                    <option value="">{empText.noTitle}</option>
                     {titles
                       .filter((t) => !departmentId || t.department_id === departmentId)
                       .map((job) => (
@@ -660,17 +833,100 @@ export default function EmployeesPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Mã NV / Giới tính</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={employeeCode}
+                      onChange={(e) => setEmployeeCode(e.target.value)}
+                      className="w-1/2 px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                      placeholder="Tự động nếu để trống"
+                    />
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="w-1/2 px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    >
+                      <option value="male">Nam</option>
+                      <option value="female">Nữ</option>
+                      <option value="other">Khác</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Ảnh đại diện (Avatar)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setAvatarFile(e.target.files[0]);
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px] file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Trình độ học vấn</label>
+                  <input
+                    type="text"
+                    value={educationLevel}
+                    onChange={(e) => setEducationLevel(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    placeholder="Đại học, Cao đẳng..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Quê quán</label>
+                    <input
+                      type="text"
+                      value={hometown}
+                      onChange={(e) => setHometown(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Địa chỉ thường trú</label>
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Ghi chú nhân thân</label>
+                  <textarea
+                    value={biography}
+                    onChange={(e) => setBiography(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 placeholder-slate-400"
+                    placeholder="Lý lịch, thông tin thêm..."
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">System Role</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.systemRole}</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
                   >
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                    <option value="hr">HR Specialist</option>
+                    <option value="employee">{roleLabels.employee}</option>
+                    <option value="manager">{roleLabels.manager}</option>
+                    <option value="hr">{roleLabels.hr}</option>
                   </select>
                 </div>
               </div>
@@ -679,17 +935,17 @@ export default function EmployeesPage() {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50"
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 min-h-[36px]"
                 >
-                  Cancel
+                  {empText.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="px-4 py-2 bg-teal-700 hover:bg-teal-850 text-white rounded-lg text-xs font-semibold flex items-center gap-2"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-850 text-white rounded-lg text-xs font-semibold flex items-center gap-2 min-h-[36px]"
                 >
                   {formSubmitting && <Loader2 className="h-3 w-3 animate-spin" />}
-                  Save Changes
+                  {empText.saveChanges}
                 </button>
               </div>
             </form>

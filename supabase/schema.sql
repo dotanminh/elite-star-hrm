@@ -26,15 +26,34 @@ create table public.titles (
 -- 3. Profiles Table (1:1 with auth.users)
 create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
+  employee_code text unique,
   email text not null unique,
   first_name text not null,
   last_name text not null,
+  avatar_url text,
+  gender text check (gender in ('male', 'female', 'other')),
+  education_level text,
+  address text,
+  hometown text,
+  biography text,
   department_id uuid references public.departments(id) on delete set null,
   title_id uuid references public.titles(id) on delete set null,
   role text not null check (role in ('admin', 'hr', 'manager', 'employee')) default 'employee',
   phone text,
   status text not null check (status in ('active', 'suspended', 'terminated')) default 'active',
   hire_date date default current_date not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 3.5 Disciplinary Records Table
+create table public.disciplinary_records (
+  id uuid default gen_random_uuid() primary key,
+  employee_id uuid references public.profiles(id) on delete cascade not null,
+  reason text not null,
+  severity text not null check (severity in ('low', 'medium', 'high', 'critical')) default 'medium',
+  record_date date not null default current_date,
+  recorded_by uuid references public.profiles(id) on delete set null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -399,3 +418,61 @@ $$;
 create trigger on_profile_update
   before update on public.profiles
   for each row execute function public.secure_profile_update();
+
+-- Disciplinary Records Indexes and RLS
+create index idx_disciplines_employee_id on public.disciplinary_records(employee_id);
+create index idx_disciplines_date on public.disciplinary_records(record_date);
+
+alter table public.disciplinary_records enable row level security;
+
+create policy "Admins and HR have full control on disciplinary records"
+  on public.disciplinary_records for all
+  to authenticated
+  using (public.get_user_role(auth.uid()) in ('admin', 'hr'))
+  with check (public.get_user_role(auth.uid()) in ('admin', 'hr'));
+
+create policy "Managers can read disciplinary records in their department"
+  on public.disciplinary_records for select
+  to authenticated
+  using (
+    public.get_user_role(auth.uid()) = 'manager' and
+    public.get_user_department(employee_id) = public.get_user_department(auth.uid())
+  );
+
+create policy "Employees can view their own disciplinary records"
+  on public.disciplinary_records for select
+  to authenticated
+  using (employee_id = auth.uid());
+
+-- Storage Bucket setup for Avatars
+insert into storage.buckets (id, name, public) 
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+create policy "Avatar images are publicly accessible."
+  on storage.objects for select
+  using ( bucket_id = 'avatars' );
+
+create policy "Admin and HR can upload avatars"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'avatars' and 
+    auth.role() = 'authenticated' and 
+    public.get_user_role(auth.uid()) in ('admin', 'hr')
+  );
+
+create policy "Admin and HR can update avatars"
+  on storage.objects for update
+  with check (
+    bucket_id = 'avatars' and 
+    auth.role() = 'authenticated' and 
+    public.get_user_role(auth.uid()) in ('admin', 'hr')
+  );
+
+create policy "Admin and HR can delete avatars"
+  on storage.objects for delete
+  using (
+    bucket_id = 'avatars' and 
+    auth.role() = 'authenticated' and 
+    public.get_user_role(auth.uid()) in ('admin', 'hr')
+  );

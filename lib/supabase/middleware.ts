@@ -10,6 +10,8 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -23,19 +25,17 @@ export async function updateSession(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           });
-          supabaseResponse.cookies.set(name, value, { ...options, secure: false });
+          supabaseResponse.cookies.set(name, value, { ...options, secure: isProduction });
         },
         remove(name: string, options: any) {
           request.cookies.delete(name);
           supabaseResponse = NextResponse.next({
             request,
           });
-          supabaseResponse.cookies.set(name, '', { ...options, maxAge: 0, secure: false });
+          supabaseResponse.cookies.set(name, '', { ...options, maxAge: 0, secure: isProduction });
         },
         getAll() {
-          const allCookies = request.cookies.getAll();
-          console.log('MIDDLEWARE COOKIES:', allCookies.map(c => c.name));
-          return allCookies;
+          return request.cookies.getAll();
         },
         setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
@@ -43,12 +43,12 @@ export async function updateSession(request: NextRequest) {
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, { ...options, secure: false })
+            supabaseResponse.cookies.set(name, value, { ...options, secure: isProduction })
           );
         },
       },
       cookieOptions: {
-        secure: false,
+        secure: isProduction,
       },
       global: {
         fetch: (url: any, options?: any) => fetch(url, { ...options, cache: 'no-store' }),
@@ -58,12 +58,7 @@ export async function updateSession(request: NextRequest) {
 
   // Calling auth.getUser() refreshes the session cookie automatically if expired.
   // Using getUser() rather than getSession() prevents cookie manipulation/hijacking on the client.
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError) {
-    console.error('MIDDLEWARE AUTH ERROR:', userError);
-  } else {
-    console.log('MIDDLEWARE AUTH SUCCESS, USER:', user?.email);
-  }
+  const { data: { user } } = await supabase.auth.getUser();
 
   const createRedirectResponse = (targetUrl: URL) => {
     const redirectResponse = NextResponse.redirect(targetUrl);
@@ -73,7 +68,7 @@ export async function updateSession(request: NextRequest) {
         domain: cookie.domain,
         maxAge: cookie.maxAge,
         expires: cookie.expires,
-        secure: false,
+        secure: isProduction,
         httpOnly: cookie.httpOnly,
         sameSite: cookie.sameSite,
       });
@@ -86,6 +81,7 @@ export async function updateSession(request: NextRequest) {
   // 1. Auth Guard: Define the list of protected paths
   const isProtectedRoute = 
     path === '/' || 
+    path.startsWith('/dashboard') ||
     path.startsWith('/employees') || 
     path.startsWith('/leave') || 
     path.startsWith('/attendance') || 
