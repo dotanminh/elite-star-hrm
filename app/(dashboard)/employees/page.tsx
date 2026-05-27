@@ -17,7 +17,8 @@ import {
   Edit2, 
   Loader2, 
   X,
-  Briefcase
+  Briefcase,
+  UserCircle
 } from 'lucide-react';
 
 export default function EmployeesPage() {
