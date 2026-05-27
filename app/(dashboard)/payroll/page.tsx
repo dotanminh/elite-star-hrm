@@ -43,9 +43,9 @@ const getDefaultPayrollPeriod = () => {
     }
   }
   
-  // start from 29th, end on 28th
+  // start from 28th, end on 28th
   // We need to account for timezones safely by formatting components manually
-  const startStr = `${startYear}-${String(startMonth + 1).padStart(2, '0')}-29`;
+  const startStr = `${startYear}-${String(startMonth + 1).padStart(2, '0')}-28`;
   const endStr = `${endYear}-${String(endMonth + 1).padStart(2, '0')}-28`;
   return { startDate: startStr, endDate: endStr };
 };
