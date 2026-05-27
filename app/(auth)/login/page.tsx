@@ -29,13 +29,16 @@ export default function LoginPage() {
     setEmailErrorFormat(null);
 
     if (!email) {
-      setEmailError(loginText.errors.emailRequired);
+      setEmailError('Vui lòng nhập Mã NV hoặc Email');
       valid = false;
     } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        setEmailErrorFormat(loginText.errors.emailInvalid);
-        valid = false;
+      // Allow employee code (no @) or valid email
+      if (email.includes('@')) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          setEmailErrorFormat(loginText.errors.emailInvalid);
+          valid = false;
+        }
       }
     }
 
@@ -55,9 +58,14 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
+      let loginEmail = email.trim();
+      if (!loginEmail.includes('@')) {
+        loginEmail = `${loginEmail.toLowerCase()}@elitestar.local`;
+      }
+
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password,
       });
 
@@ -106,12 +114,12 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
-                {loginText.emailLabel}
+                Mã NV / Email
               </label>
               <input
                 id="email"
                 name="email"
-                type="email"
+                type="text"
                 required
                 value={email}
                 onChange={(e) => {

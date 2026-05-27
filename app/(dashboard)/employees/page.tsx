@@ -39,9 +39,7 @@ export default function EmployeesPage() {
   const [activeEmployee, setActiveEmployee] = useState<any>(null);
 
   // Form Fields
-  const [email, setEmail] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('employee');
   const [departmentId, setDepartmentId] = useState('');
@@ -105,9 +103,7 @@ export default function EmployeesPage() {
 
   // Form Reset Helper
   const resetForm = () => {
-    setEmail('');
-    setFirstName('');
-    setLastName('');
+    setFullName('');
     setPhone('');
     setRole('employee');
     setDepartmentId('');
@@ -127,8 +123,7 @@ export default function EmployeesPage() {
   // Open Edit Modal
   const openEdit = (emp: any) => {
     setActiveEmployee(emp);
-    setFirstName(emp.first_name || '');
-    setLastName(emp.last_name || '');
+    setFullName((emp.last_name ? emp.last_name + ' ' : '') + (emp.first_name || ''));
     setPhone(emp.phone || '');
     setRole(emp.role || 'employee');
     setDepartmentId(emp.department_id || '');
@@ -150,17 +145,15 @@ export default function EmployeesPage() {
     e.preventDefault();
     setFormError(null);
 
-    if (!email || !firstName || !lastName) {
-      setFormError(empText.errors.emailFirstLastRequired);
+    if (!fullName) {
+      setFormError('Vui lòng nhập Họ và Tên');
       return;
     }
 
     setFormSubmitting(true);
     try {
       const result = await createEmployeeAction({
-        email,
-        firstName,
-        lastName,
+        fullName,
         phone,
         role,
         departmentId,
@@ -207,10 +200,14 @@ export default function EmployeesPage() {
     e.preventDefault();
     setFormError(null);
 
-    if (!firstName || !lastName) {
-      setFormError(empText.errors.firstLastRequired);
+    if (!fullName) {
+      setFormError('Vui lòng nhập Họ và Tên');
       return;
     }
+
+    const nameParts = fullName.trim().split(' ');
+    const editFirstName = nameParts.pop() || '';
+    const editLastName = nameParts.join(' ');
 
     setFormSubmitting(true);
     try {
@@ -232,8 +229,8 @@ export default function EmployeesPage() {
       };
 
       const newValues = {
-        first_name: firstName,
-        last_name: lastName,
+        first_name: editFirstName,
+        last_name: editLastName,
         role,
         phone: phone || null,
         department_id: departmentId || null,
@@ -394,10 +391,10 @@ export default function EmployeesPage() {
                   {filteredEmployees.map((emp) => (
                     <tr key={emp.id} className="hover:bg-slate-50/50">
                       <td className="py-3 px-4 font-semibold text-slate-900">
-                        {emp.first_name} {emp.last_name}
+                        {emp.last_name} {emp.first_name}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="text-slate-800">{emp.email}</div>
+                        <div className="text-slate-800 font-bold">{emp.employee_code || '-'}</div>
                         {emp.phone && <div className="text-[10px] text-slate-400 mt-0.5">{emp.phone}</div>}
                       </td>
                       <td className="py-3 px-4">
@@ -444,8 +441,8 @@ export default function EmployeesPage() {
                 <div key={emp.id} className="p-4 hover:bg-slate-50/40 space-y-3">
                   <div className="flex justify-between items-start gap-2">
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm">{emp.first_name} {emp.last_name}</h3>
-                      <p className="text-xs text-slate-500">{emp.email}</p>
+                      <h3 className="font-bold text-slate-900 text-sm">{emp.last_name} {emp.first_name}</h3>
+                      <p className="text-xs text-slate-500 font-bold">{emp.employee_code || '-'}</p>
                       {emp.phone && <p className="text-[10px] text-slate-400 mt-0.5">{emp.phone}</p>}
                     </div>
                     {isHrOrAdmin && (
@@ -513,14 +510,14 @@ export default function EmployeesPage() {
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.emailAddress}</label>
+                <div className="col-span-1 sm:col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Họ và Tên</label>
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 placeholder-slate-400 min-h-[40px]"
-                    placeholder="emp@elitestar.vn"
+                    placeholder="VD: Nguyễn Văn A"
                   />
                 </div>
                 <div>
@@ -534,29 +531,6 @@ export default function EmployeesPage() {
                     <option value="manager">{empText.roleManager}</option>
                     <option value="hr">{empText.roleHR}</option>
                   </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.firstName}</label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
-                    placeholder="Minh"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">{empText.lastName}</label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
-                    placeholder="Đỗ"
-                  />
                 </div>
               </div>
 

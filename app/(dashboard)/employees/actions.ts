@@ -48,9 +48,7 @@ function createCookieClient() {
 }
 
 export async function createEmployeeAction(data: {
-  email: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   phone: string;
   role: string;
   departmentId: string;
@@ -69,14 +67,43 @@ export async function createEmployeeAction(data: {
     const standaloneClient = createStandaloneClient();
     const cookieClient = createCookieClient();
 
+    // Auto-generate employee_code if not provided
+    let finalEmployeeCode = data.employeeCode;
+    if (!finalEmployeeCode) {
+      const { data: latestProfile } = await cookieClient
+        .from('profiles')
+        .select('employee_code')
+        .ilike('employee_code', 'ES%')
+        .order('employee_code', { ascending: false })
+        .limit(1)
+        .single();
+      
+      let nextNumber = 1;
+      if (latestProfile && latestProfile.employee_code) {
+        const numPart = parseInt(latestProfile.employee_code.replace('ES', ''), 10);
+        if (!isNaN(numPart)) {
+          nextNumber = numPart + 1;
+        }
+      }
+      finalEmployeeCode = `ES${nextNumber.toString().padStart(3, '0')}`;
+    }
+
+    // Split Full Name into First and Last Name
+    const nameParts = data.fullName.trim().split(' ');
+    const firstName = nameParts.pop() || '';
+    const lastName = nameParts.join(' ');
+
+    // Auto-generate email
+    const finalEmail = `${finalEmployeeCode.toLowerCase()}@elitestar.local`;
+
     // 1. Sign up the user in Auth using standalone client (doesn't modify cookies)
     const { data: authData, error: authError } = await standaloneClient.auth.signUp({
-      email: data.email,
-      password: 'password123', // Default temporary password
+      email: finalEmail,
+      password: '123456', // Default temporary password
       options: {
         data: {
-          first_name: data.firstName,
-          last_name: data.lastName,
+          first_name: firstName,
+          last_name: lastName,
           role: data.role,
           phone: data.phone,
           hire_date: data.hireDate
@@ -88,25 +115,6 @@ export async function createEmployeeAction(data: {
 
     const newUserId = authData.user?.id;
     if (!newUserId) throw new Error('Không nhận được ID từ hệ thống Auth');
-
-    // Generate Employee Code if not provided
-    let finalEmployeeCode = data.employeeCode;
-    if (!finalEmployeeCode) {
-      const { data: latestEmp } = await cookieClient
-        .from('profiles')
-        .select('employee_code')
-        .ilike('employee_code', 'ES%')
-        .order('employee_code', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      let nextNum = 1;
-      if (latestEmp?.employee_code) {
-        const numPart = parseInt(latestEmp.employee_code.replace(/^ES0*/, ''));
-        if (!isNaN(numPart)) nextNum = numPart + 1;
-      }
-      finalEmployeeCode = `ES${nextNum.toString().padStart(3, '0')}`;
-    }
 
     // 2. Associate department and title (runs with cookie client as current actor's session)
     const { error: profileError } = await cookieClient
