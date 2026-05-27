@@ -86,16 +86,12 @@ export default function PayrollPage() {
         const diffHours = diffMs / (1000 * 60 * 60);
         
         let validDay = 0;
-        // Quy tắc tính công:
-        // < 2 tiếng = 0 công
-        // >= 2 tiếng & < 6 tiếng = 0.5 công
-        // >= 6 tiếng = 1 công
-        if (diffHours < 2) {
+        // Quy tắc tính công (cập nhật theo yêu cầu của sếp):
+        // Dù làm 2 tiếng hay 5 tiếng mà chỉ làm buổi sáng/chiều thì tính là 0 công (phải làm đủ ngày mới tính)
+        // Nghĩa là phải >= 7 tiếng (hoặc check out buổi chiều) mới được 1 công. Không có mức 0.5 công.
+        if (diffHours < 7) {
           validDay = 0;
           totalInvalidDays += 1;
-        } else if (diffHours < 6) {
-          validDay = 0.5;
-          totalValidDays += 0.5;
         } else {
           validDay = 1;
           totalValidDays += 1;
@@ -206,9 +202,8 @@ export default function PayrollPage() {
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
           <div className="text-xs text-slate-500 uppercase font-bold mb-2 border-b border-slate-100 pb-2">Quy tắc tính công hiện tại</div>
           <ul className="text-[11px] space-y-1 text-slate-600 font-medium">
-            <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Dưới 2 tiếng = <b className="text-slate-800">0 công</b> (Không hợp lệ)</li>
-            <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500"></span> 2 - 6 tiếng = <b className="text-slate-800">0.5 công</b></li>
-            <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Trên 6 tiếng = <b className="text-slate-800">1 công</b></li>
+            <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Dưới 7 tiếng (hoặc chỉ làm nửa ngày) = <b className="text-slate-800">0 công</b></li>
+            <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Đủ từ 7 tiếng trở lên = <b className="text-slate-800">1 công</b></li>
           </ul>
         </div>
       </div>
@@ -223,7 +218,7 @@ export default function PayrollPage() {
                 <th className="py-4 px-4">Phòng ban</th>
                 <th className="py-4 px-4 text-center">Tổng lượt chấm</th>
                 <th className="py-4 px-4 text-center">Giờ làm (Tích lũy)</th>
-                <th className="py-4 px-4 text-center">Lượt không hợp lệ (&lt; 2h)</th>
+                <th className="py-4 px-4 text-center">Lượt không hợp lệ (&lt; 7h)</th>
                 <th className="py-4 px-4 text-center text-emerald-700 font-bold bg-emerald-50/50">Ngày công hợp lệ</th>
               </tr>
             </thead>
