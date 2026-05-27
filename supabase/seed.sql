@@ -4,13 +4,14 @@
 
 create extension if not exists pgcrypto;
 
--- 1. Clear Existing Data
-truncate table auth.users cascade;
-truncate table public.departments cascade;
-truncate table public.titles cascade;
-truncate table public.leave_requests cascade;
-truncate table public.attendance_logs cascade;
-truncate table public.audit_logs cascade;
+-- 1. Clear Existing Data (Using DELETE in dependency order to prevent constraints and permission errors)
+delete from public.audit_logs;
+delete from public.attendance_logs;
+delete from public.leave_requests;
+delete from public.profiles;
+delete from public.titles;
+delete from public.departments;
+delete from auth.users;
 
 -- 2. Seed Departments
 insert into public.departments (id, name, description) values
