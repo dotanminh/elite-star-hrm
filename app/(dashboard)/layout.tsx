@@ -70,14 +70,8 @@ export default async function DashboardLayout({
         {/* Desktop Left Sidebar (>= 800px) */}
         <aside className="hidden md:flex md:w-64 border-r border-slate-200 bg-white flex-col justify-between">
           <div className="flex-1 py-6 px-4">
-            <div className="flex items-center space-x-3 mb-8 px-2">
-              <div className="bg-teal-700 p-2 rounded-lg text-white">
-                <Clock className="h-6 w-6" />
-              </div>
-              <div>
-                <span className="text-lg font-bold tracking-tight text-teal-900 block">{navText.brandName}</span>
-                <span className="text-[10px] text-teal-600 font-semibold tracking-wider uppercase block">{navText.brandSubtitle}</span>
-              </div>
+            <div className="flex items-center justify-center mb-6 mt-2 px-2">
+              <img src="/logo.png" alt="Elite Star" className="w-[160px] h-auto object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300" />
             </div>
             
             <nav className="space-y-1">
@@ -130,11 +124,8 @@ export default async function DashboardLayout({
           
           {/* Mobile Header (< 800px / md screen layout) */}
           <header className="flex md:hidden items-center justify-between px-4 py-3 bg-white border-b border-slate-200 w-full z-40">
-            <div className="flex items-center space-x-2">
-              <div className="bg-teal-700 p-1.5 rounded text-white">
-                <Clock className="h-5 w-5" />
-              </div>
-              <span className="font-bold text-teal-900 text-sm">{navText.brandName}</span>
+            <div className="flex items-center">
+              <img src="/logo.png" alt="Elite Star" className="h-10 w-auto object-contain" />
             </div>
             <div className="flex items-center space-x-3">
               <span className="text-xs font-semibold px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full border border-teal-200 uppercase text-[10px]">
