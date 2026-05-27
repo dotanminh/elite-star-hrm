@@ -117,6 +117,68 @@ insert into auth.users (
   now()
 );
 
+-- 4.5 Link identities so the users can log in (Required in modern Supabase versions)
+insert into auth.identities (
+  id,
+  user_id,
+  identity_data,
+  provider,
+  provider_id,
+  last_sign_in_at,
+  created_at,
+  updated_at
+) values
+(
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000001',
+  '{"sub": "00000000-0000-0000-0000-000000000001", "email": "toiminhvuive@gmail.com"}',
+  'email',
+  '00000000-0000-0000-0000-000000000001',
+  now(),
+  now(),
+  now()
+),
+(
+  '00000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000002',
+  '{"sub": "00000000-0000-0000-0000-000000000002", "email": "hr.manager@elitestar.com"}',
+  'email',
+  '00000000-0000-0000-0000-000000000002',
+  now(),
+  now(),
+  now()
+),
+(
+  '00000000-0000-0000-0000-000000000003',
+  '00000000-0000-0000-0000-000000000003',
+  '{"sub": "00000000-0000-0000-0000-000000000003", "email": "pb.manager@elitestar.com"}',
+  'email',
+  '00000000-0000-0000-0000-000000000003',
+  now(),
+  now(),
+  now()
+),
+(
+  '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000004',
+  '{"sub": "00000000-0000-0000-0000-000000000004", "email": "fb.barista@elitestar.com"}',
+  'email',
+  '00000000-0000-0000-0000-000000000004',
+  now(),
+  now(),
+  now()
+),
+(
+  '00000000-0000-0000-0000-000000000005',
+  '00000000-0000-0000-0000-000000000005',
+  '{"sub": "00000000-0000-0000-0000-000000000005", "email": "ops.staff@elitestar.com"}',
+  'email',
+  '00000000-0000-0000-0000-000000000005',
+  now(),
+  now(),
+  now()
+);
+
 -- 5. Associate Department and Title ids (Since triggers created the profiles, we update them)
 update public.profiles set department_id = '44444444-4444-4444-4444-444444444444', title_id = 'd1111111-1111-1111-1111-111111111111' where id = '00000000-0000-0000-0000-000000000001';
 update public.profiles set department_id = '33333333-3333-3333-3333-333333333333', title_id = 'c1111111-1111-1111-1111-111111111111' where id = '00000000-0000-0000-0000-000000000002';
