@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/components/profile-provider';
+import { AvatarUpload } from '@/components/avatar-upload';
 import { createEmployeeAction } from './actions';
 import { 
   employees as empText, 
@@ -54,7 +55,7 @@ export default function EmployeesPage() {
   const [address, setAddress] = useState('');
   const [hometown, setHometown] = useState('');
   const [biography, setBiography] = useState('');
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState('');
 
   const [formError, setFormError] = useState<string | null>(null);
   const [formSubmitting, setFormSubmitting] = useState(false);
@@ -116,7 +117,7 @@ export default function EmployeesPage() {
     setAddress('');
     setHometown('');
     setBiography('');
-    setAvatarFile(null);
+    setAvatarUrl('');
     setFormError(null);
   };
 
@@ -136,7 +137,7 @@ export default function EmployeesPage() {
     setAddress(emp.address || '');
     setHometown(emp.hometown || '');
     setBiography(emp.biography || '');
-    setAvatarFile(null);
+    setAvatarUrl(emp.avatar_url || '');
     setShowEditModal(true);
   };
 
@@ -173,16 +174,8 @@ export default function EmployeesPage() {
         throw new Error(result.error);
       }
 
-      if (avatarFile && result.userId) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const filePath = `${result.userId}-${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, avatarFile);
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-          await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', result.userId);
-        } else {
-          console.error('Lỗi upload avatar:', uploadError);
-        }
+      if (avatarUrl && result.userId) {
+        await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', result.userId);
       }
 
       setShowAddModal(false);
@@ -243,20 +236,8 @@ export default function EmployeesPage() {
         address: address || null,
         hometown: hometown || null,
         biography: biography || null,
-        avatar_url: activeEmployee.avatar_url
+        avatar_url: avatarUrl || null
       };
-
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const filePath = `${activeEmployee.id}-${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, avatarFile);
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-          newValues.avatar_url = publicUrl;
-        } else {
-          console.error('Lỗi upload avatar:', uploadError);
-        }
-      }
 
       // Update in database
       const { error: updateError } = await supabase
@@ -390,8 +371,13 @@ export default function EmployeesPage() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredEmployees.map((emp) => (
                     <tr key={emp.id} className="hover:bg-slate-50/50">
-                      <td className="py-3 px-4 font-semibold text-slate-900">
-                        {emp.last_name} {emp.first_name}
+                      <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-3">
+                        {emp.avatar_url ? (
+                          <img src={emp.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm" />
+                        ) : (
+                          <UserCircle className="w-8 h-8 text-slate-300" strokeWidth={1} />
+                        )}
+                        <span>{emp.last_name} {emp.first_name}</span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="text-slate-800 font-bold">{emp.employee_code || '-'}</div>
@@ -440,10 +426,17 @@ export default function EmployeesPage() {
               {filteredEmployees.map((emp) => (
                 <div key={emp.id} className="p-4 hover:bg-slate-50/40 space-y-3">
                   <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm">{emp.last_name} {emp.first_name}</h3>
-                      <p className="text-xs text-slate-500 font-bold">{emp.employee_code || '-'}</p>
-                      {emp.phone && <p className="text-[10px] text-slate-400 mt-0.5">{emp.phone}</p>}
+                    <div className="flex items-center gap-3">
+                      {emp.avatar_url ? (
+                        <img src={emp.avatar_url} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm" />
+                      ) : (
+                        <UserCircle className="w-10 h-10 text-slate-300" strokeWidth={1} />
+                      )}
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm">{emp.last_name} {emp.first_name}</h3>
+                        <p className="text-xs text-slate-500 font-bold">{emp.employee_code || '-'}</p>
+                        {emp.phone && <p className="text-[10px] text-slate-400 mt-0.5">{emp.phone}</p>}
+                      </div>
                     </div>
                     {isHrOrAdmin && (
                       <button
@@ -611,16 +604,9 @@ export default function EmployeesPage() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Ảnh đại diện (Avatar)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        setAvatarFile(e.target.files[0]);
-                      }
-                    }}
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px] file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
-                  />
+                  <div className="pt-2">
+                    <AvatarUpload url={avatarUrl} onUpload={setAvatarUrl} employeeCode={employeeCode} />
+                  </div>
                 </div>
               </div>
 
@@ -823,16 +809,9 @@ export default function EmployeesPage() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Ảnh đại diện (Avatar)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        setAvatarFile(e.target.files[0]);
-                      }
-                    }}
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px] file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
-                  />
+                  <div className="pt-2">
+                    <AvatarUpload url={avatarUrl} onUpload={setAvatarUrl} employeeCode={employeeCode} />
+                  </div>
                 </div>
               </div>
 

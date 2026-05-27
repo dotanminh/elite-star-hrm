@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { ProfileProvider, UserProfile } from '@/components/profile-provider';
 import { LogoutButton } from '@/components/logout-button';
+import { Toaster } from 'sonner';
 import { nav as navText, roleLabels } from '@/lib/i18n/vi';
 import { 
   LayoutDashboard, 
@@ -65,6 +66,7 @@ export default async function DashboardLayout({
 
   return (
     <ProfileProvider initialProfile={typedProfile}>
+      <Toaster richColors position="top-right" />
       <div className="flex h-screen w-full bg-slate-50 text-slate-900 overflow-hidden">
         
         {/* Desktop Left Sidebar (>= 800px) */}

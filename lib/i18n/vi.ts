@@ -6,7 +6,7 @@
 // --- Navigation ---
 export const nav = {
   brandName: 'Elite Star',
-  brandSubtitle: 'Hệ Thống Nhân Sự',
+  brandSubtitle: 'Hệ thống Elite Star HRM',
   overview: 'Tổng quan',
   employees: 'Nhân viên',
   leaveRequests: 'Nghỉ phép',
