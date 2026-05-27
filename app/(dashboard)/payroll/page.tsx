@@ -39,7 +39,7 @@ export default function PayrollPage() {
       // Lấy danh sách nhân viên
       const { data: empData, error: empError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, employee_code, departments(name), roles:role(name)')
+        .select('id, first_name, last_name, employee_code, role, status, hire_date, departments(name)')
         .order('last_name');
         
       if (empError) throw empError;
@@ -105,10 +105,22 @@ export default function PayrollPage() {
 
       const start = new Date(startDate);
       const end = new Date(endDate);
+      const today = new Date();
+      
       let totalDaysInPeriod = 0;
       let missingDates: Date[] = [];
 
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        // Chỉ tính những ngày:
+        // 1. Không vượt quá ngày hôm nay (tương lai không thể chấm công)
+        // 2. Không trước ngày vào làm (hire_date)
+        const dTime = d.getTime();
+        const hireDate = emp.hire_date ? new Date(emp.hire_date).getTime() : 0;
+        
+        if (dTime > today.getTime() || dTime < hireDate) {
+          continue; // Bỏ qua ngày tương lai hoặc trước khi vào làm
+        }
+
         totalDaysInPeriod++;
         const dateStr = d.toISOString().split('T')[0];
         const logForDate = empLogs.find(l => l.work_date === dateStr);
@@ -128,11 +140,15 @@ export default function PayrollPage() {
         }
       }
 
+      // Xử lý nhân viên đã nghỉ việc: Nếu họ đã nghỉ, ta có thể du di các ngày vắng sau ngày chấm công cuối cùng
+      // Tuy nhiên, logic chuẩn là thưởng chuyên cần chỉ áp dụng cho người làm đủ ngày yêu cầu.
+      // Dựa theo yêu cầu "tính được số ngày công cho người nghỉ", totalValidDays đã chính xác.
+      
       // Check conditions for 500k bonus
       // Rule: max 2 missing days, and NONE of the missing days can be Saturday (6) or Sunday (0).
       const hasWeekendAbsence = missingDates.some(d => d.getDay() === 0 || d.getDay() === 6);
       let bonus = 0;
-      if (missingDates.length <= 2 && !hasWeekendAbsence) {
+      if (missingDates.length <= 2 && !hasWeekendAbsence && totalDaysInPeriod > 0) {
         bonus = 500000; // 500,000 VNĐ
       }
 
