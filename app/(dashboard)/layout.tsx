@@ -70,8 +70,9 @@ export default async function DashboardLayout({
         {/* Desktop Left Sidebar (>= 800px) */}
         <aside className="hidden md:flex md:w-64 border-r border-slate-200 bg-white flex-col justify-between">
           <div className="flex-1 py-6 px-4">
-            <div className="flex items-center justify-center mb-6 mt-2 px-2">
+            <div className="flex flex-col items-center justify-center mb-6 mt-2 px-2">
               <img src="/logo.png" alt="Elite Star" className="w-[160px] h-auto object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300" />
+              <span className="text-[11px] text-teal-700 font-bold tracking-widest uppercase mt-3">{navText.brandSubtitle}</span>
             </div>
             
             <nav className="space-y-1">
