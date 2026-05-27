@@ -29,7 +29,9 @@ export default function ManageAttendancePage() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedLogIds, setSelectedLogIds] = useState<string[]>([]);
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -68,8 +70,11 @@ export default function ManageAttendancePage() {
         `)
         .order('check_in', { ascending: false });
 
-      if (selectedDate) {
-        query = query.eq('work_date', selectedDate);
+      if (startDate) {
+        query = query.gte('work_date', startDate);
+      }
+      if (endDate) {
+        query = query.lte('work_date', endDate);
       }
 
       const { data: logsData, error } = await query;
@@ -84,7 +89,7 @@ export default function ManageAttendancePage() {
 
   useEffect(() => {
     fetchData();
-  }, [currentUser, selectedDate]);
+  }, [currentUser, startDate, endDate]);
 
   const resetForm = () => {
     setEmployeeId('');
@@ -180,23 +185,51 @@ export default function ManageAttendancePage() {
   };
 
   const handleDelete = async () => {
-    if (!activeLog) return;
     setFormSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('attendance_logs')
-        .delete()
-        .eq('id', activeLog.id);
-        
-      if (error) throw error;
+      if (activeLog) {
+        // Single delete
+        const { error } = await supabase
+          .from('attendance_logs')
+          .delete()
+          .eq('id', activeLog.id);
+          
+        if (error) throw error;
+        toast.success('Xóa lượt chấm công thành công');
+      } else if (selectedLogIds.length > 0) {
+        // Bulk delete
+        const { error } = await supabase
+          .from('attendance_logs')
+          .delete()
+          .in('id', selectedLogIds);
+          
+        if (error) throw error;
+        toast.success(`Đã xóa ${selectedLogIds.length} lượt chấm công`);
+        setSelectedLogIds([]);
+      }
 
-      toast.success('Xóa lượt chấm công thành công');
       setShowDeleteConfirm(false);
       fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Lỗi khi xóa lượt chấm công');
     } finally {
       setFormSubmitting(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLogIds.length === filteredLogs.length) {
+      setSelectedLogIds([]);
+    } else {
+      setSelectedLogIds(filteredLogs.map(log => log.id));
+    }
+  };
+
+  const toggleSelectLog = (id: string) => {
+    if (selectedLogIds.includes(id)) {
+      setSelectedLogIds(selectedLogIds.filter(logId => logId !== id));
+    } else {
+      setSelectedLogIds([...selectedLogIds, id]);
     }
   };
 
@@ -220,16 +253,30 @@ export default function ManageAttendancePage() {
           <h1 className="text-2xl font-bold text-slate-900">Quản lý Chấm công</h1>
           <p className="text-sm text-slate-500">Xem, chỉnh sửa, và bù công cho nhân viên</p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowAddModal(true);
-          }}
-          className="flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors min-h-[44px]"
-        >
-          <PlusCircle className="h-4 w-4" />
-          Thêm Bù Công
-        </button>
+        <div className="flex items-center gap-2">
+          {selectedLogIds.length > 0 && (
+            <button
+              onClick={() => {
+                setActiveLog(null); // clear single log to signify bulk delete
+                setShowDeleteConfirm(true);
+              }}
+              className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors border border-red-200 min-h-[44px]"
+            >
+              <Trash2 className="h-4 w-4" />
+              Xóa {selectedLogIds.length} mục
+            </button>
+          )}
+          <button
+            onClick={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors min-h-[44px]"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Thêm Bù Công
+          </button>
+        </div>
       </div>
 
       {/* Filter Toolbar */}
@@ -245,20 +292,32 @@ export default function ManageAttendancePage() {
           />
         </div>
         
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-slate-400" />
-          <input 
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="border border-slate-300 rounded-lg py-2 px-3 text-sm bg-white focus:border-teal-700 focus:outline-none"
-          />
-          {selectedDate && (
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 border border-slate-300 rounded-lg px-3 py-2 bg-white focus-within:border-teal-700">
+            <Calendar className="h-4 w-4 text-slate-400" />
+            <input 
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="text-sm bg-transparent border-none focus:ring-0 p-0"
+            />
+            <span className="text-slate-400">-</span>
+            <input 
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="text-sm bg-transparent border-none focus:ring-0 p-0"
+            />
+          </div>
+          {(startDate || endDate) && (
             <button 
-              onClick={() => setSelectedDate('')}
-              className="text-xs text-teal-700 font-semibold hover:underline"
+              onClick={() => {
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="text-xs text-teal-700 font-semibold hover:underline whitespace-nowrap"
             >
-              Xem tất cả
+              Xóa bộ lọc
             </button>
           )}
         </div>
@@ -270,6 +329,14 @@ export default function ManageAttendancePage() {
           <table className="w-full text-left border-collapse text-xs text-slate-650">
             <thead>
               <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <th className="py-3.5 px-4 w-10">
+                  <input 
+                    type="checkbox" 
+                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-600 cursor-pointer"
+                    checked={filteredLogs.length > 0 && selectedLogIds.length === filteredLogs.length}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 <th className="py-3.5 px-4">Nhân viên</th>
                 <th className="py-3.5 px-4">Ngày</th>
                 <th className="py-3.5 px-4">Giờ Vào (In)</th>
@@ -288,7 +355,15 @@ export default function ManageAttendancePage() {
                 </tr>
               ) : filteredLogs.length > 0 ? (
                 filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50/50">
+                  <tr key={log.id} className={`hover:bg-slate-50/50 ${selectedLogIds.includes(log.id) ? 'bg-teal-50/30' : ''}`}>
+                    <td className="py-3 px-4">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-slate-300 text-teal-600 focus:ring-teal-600 cursor-pointer"
+                        checked={selectedLogIds.includes(log.id)}
+                        onChange={() => toggleSelectLog(log.id)}
+                      />
+                    </td>
                     <td className="py-3 px-4">
                       <div className="font-semibold text-slate-900">
                         {log.profiles?.last_name} {log.profiles?.first_name}
@@ -521,12 +596,16 @@ export default function ManageAttendancePage() {
       )}
 
       {/* Delete Confirm Modal */}
-      {showDeleteConfirm && activeLog && (
+      {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl max-w-sm w-full shadow-2xl border border-slate-200 p-6 space-y-4">
             <h3 className="text-lg font-bold text-slate-800">Xóa dữ liệu?</h3>
             <p className="text-sm text-slate-500">
-              Bạn có chắc chắn muốn xóa lượt chấm công của <strong className="text-slate-700">{activeLog.profiles?.last_name} {activeLog.profiles?.first_name}</strong> ngày {activeLog.work_date}? 
+              {activeLog ? (
+                <>Bạn có chắc chắn muốn xóa lượt chấm công của <strong className="text-slate-700">{activeLog.profiles?.last_name} {activeLog.profiles?.first_name}</strong> ngày {activeLog.work_date}?</>
+              ) : (
+                <>Bạn có chắc chắn muốn xóa <strong>{selectedLogIds.length}</strong> lượt chấm công đã chọn?</>
+              )}
             </p>
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
               <button
