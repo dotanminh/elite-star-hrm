@@ -223,7 +223,7 @@ export default function PayrollPage() {
                 <th className="py-4 px-4">Phòng ban</th>
                 <th className="py-4 px-4 text-center">Tổng lượt chấm</th>
                 <th className="py-4 px-4 text-center">Giờ làm (Tích lũy)</th>
-                <th className="py-4 px-4 text-center">Lượt không hợp lệ (< 2h)</th>
+                <th className="py-4 px-4 text-center">Lượt không hợp lệ (&lt; 2h)</th>
                 <th className="py-4 px-4 text-center text-emerald-700 font-bold bg-emerald-50/50">Ngày công hợp lệ</th>
               </tr>
             </thead>
