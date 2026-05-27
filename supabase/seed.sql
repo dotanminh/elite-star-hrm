@@ -50,7 +50,15 @@ insert into auth.users (
   raw_app_meta_data,
   raw_user_meta_data,
   created_at,
-  updated_at
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token,
+  email_change_token_current,
+  phone_change,
+  phone_change_token,
+  reconfirmation_token
 ) values
 (
   '00000000-0000-0000-0000-000000000000',
@@ -63,7 +71,15 @@ insert into auth.users (
   '{"provider": "email", "providers": ["email"]}',
   '{"first_name": "Minh", "last_name": "Do", "role": "admin", "phone": "0987654321"}',
   now(),
-  now()
+  now(),
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  ''
 ),
 (
   '00000000-0000-0000-0000-000000000000',
@@ -76,7 +92,15 @@ insert into auth.users (
   '{"provider": "email", "providers": ["email"]}',
   '{"first_name": "Ha", "last_name": "Nguyen", "role": "hr", "phone": "0987654322"}',
   now(),
-  now()
+  now(),
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  ''
 ),
 (
   '00000000-0000-0000-0000-000000000000',
@@ -89,7 +113,15 @@ insert into auth.users (
   '{"provider": "email", "providers": ["email"]}',
   '{"first_name": "Quang", "last_name": "Tran", "role": "manager", "phone": "0987654323"}',
   now(),
-  now()
+  now(),
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  ''
 ),
 (
   '00000000-0000-0000-0000-000000000000',
@@ -102,7 +134,15 @@ insert into auth.users (
   '{"provider": "email", "providers": ["email"]}',
   '{"first_name": "An", "last_name": "Le", "role": "employee", "phone": "0987654324"}',
   now(),
-  now()
+  now(),
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  ''
 ),
 (
   '00000000-0000-0000-0000-000000000000',
@@ -115,7 +155,15 @@ insert into auth.users (
   '{"provider": "email", "providers": ["email"]}',
   '{"first_name": "Binh", "last_name": "Pham", "role": "employee", "phone": "0987654325"}',
   now(),
-  now()
+  now(),
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  ''
 );
 
 -- 4.5 Link identities so the users can log in (Required in modern Supabase versions)
