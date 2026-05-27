@@ -183,6 +183,12 @@ export async function deleteEmployeeAction(employeeId: string, actorId: string) 
         record_id: employeeId
       });
 
+    // Cleanup dependent tables to bypass Foreign Key constraints
+    await cookieClient.from('attendance_logs').delete().eq('employee_id', employeeId);
+    await cookieClient.from('leave_requests').delete().eq('employee_id', employeeId);
+    await cookieClient.from('disciplinary_records').delete().eq('employee_id', employeeId);
+    await cookieClient.from('audit_logs').delete().eq('actor_id', employeeId);
+
     // We can only delete from profiles if RLS permits. 
     const { error: deleteError } = await cookieClient
       .from('profiles')
