@@ -52,7 +52,7 @@ export default async function DashboardPage() {
   // 6. Fetch pending leave requests
   const { data: pendingLeaves } = await supabase
     .from('leave_requests')
-    .select('*, profiles(first_name, last_name, email)')
+    .select('*, profiles!leave_requests_employee_id_fkey(first_name, last_name, email)')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
     .limit(5);
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
   // 8. Fetch recent disciplinary records
   const { data: recentDisciplines } = await supabase
     .from('disciplinary_records')
-    .select('*, profiles(first_name, last_name, employee_code)')
+    .select('*, profiles!disciplinary_records_employee_id_fkey(first_name, last_name, employee_code)')
     .order('record_date', { ascending: false })
     .limit(5);
 
