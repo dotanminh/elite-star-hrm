@@ -4,8 +4,11 @@ import { createClient } from '@/lib/supabase/server';
 import { ProfileProvider, UserProfile } from '@/components/profile-provider';
 import { DesktopSidebar } from '@/components/desktop-sidebar';
 import { MobileNav } from '@/components/mobile-nav';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { LogoutButton } from '@/components/logout-button';
 import { Toaster } from 'sonner';
 import { roleLabels } from '@/lib/i18n/vi';
+
 
 export default async function DashboardLayout({
   children,
