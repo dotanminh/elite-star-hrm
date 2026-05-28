@@ -1,0 +1,13 @@
+# Ignore massive backup zip
+backup_20260520.zip
+*.zip
+
+# Ignore local builds and dependencies
+node_modules
+.next
+.vercel
+
+# Ignore local diagnostic files
+/*.txt
+/*.mjs
+/*.py

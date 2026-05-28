@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -13,8 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" className="scroll-smooth">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-teal-500/30">
-        {children}
+      <body className="min-h-screen antialiased selection:bg-teal-500/30">
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -4,31 +4,96 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
+    /* Premium Sports Light Mode */
+    --background: 210 40% 98%;       /* Soft icy light blue-gray */
+    --foreground: 222 47% 11%;       /* Deep dark slate */
+    
+    --card: 0 0% 100%;               /* Pure white card */
     --card-foreground: 222 47% 11%;
+    
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 174 100% 29%; /* Deep Teal */
+    
+    --primary: 174 100% 28%;         /* Deep teal (#009688 profile) */
     --primary-foreground: 210 20% 98%;
+    
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11%;
+    
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 174 75% 97%;
-    --accent-foreground: 174 100% 29%;
+    
+    --accent: 174 75% 97%;           /* Tinkered light teal background */
+    --accent-foreground: 174 100% 28%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 174 100% 29%;
-    --radius: 0.5rem;
+    
+    --border: 214.3 32% 91.4%;
+    --input: 214.3 32% 91.4%;
+    --ring: 174 100% 28%;
+    --radius: 0.75rem;               /* Highly rounded, modern premium corners */
+  }
+
+  .dark {
+    /* Premium Sports Dark Glassmorphism Mode */
+    --background: 222 47% 4%;        /* Deep athletic dark slate background */
+    --foreground: 210 20% 98%;       /* Pure white/light gray text */
+    
+    --card: 222 47% 8%;              /* Dark glass card container */
+    --card-foreground: 210 20% 98%;
+    
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 20% 98%;
+    
+    --primary: 174 85% 45%;          /* Energetic glowing teal */
+    --primary-foreground: 222 47% 4%;
+    
+    --secondary: 222 47% 12%;
+    --secondary-foreground: 210 20% 98%;
+    
+    --muted: 222 47% 12%;
+    --muted-foreground: 215.4 16.3% 70%;
+    
+    --accent: 174 85% 12%;           /* Glowing dark teal highlight background */
+    --accent-foreground: 174 85% 45%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+    
+    --border: 222 47% 14%;           /* Very thin premium border line */
+    --input: 222 47% 14%;
+    --ring: 174 85% 45%;
   }
 }
 
-body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-feature-settings: "rlig" 1, "calt" 1;
+@layer base {
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+}
+
+/* Glassmorphism custom utilities */
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  box-shadow: 0 8px 32px 0 rgba(148, 163, 184, 0.08);
+}
+
+.glass-panel-dark {
+  background: rgba(13, 17, 23, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Smooth layout element transitions */
+div, header, aside, main, section, nav, button, input, select, textarea {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
 }
