@@ -46,3 +46,11 @@ next-env.d.ts
 *.log
 
 .vercel
+
+# Temp and diagnostic files
+/backup_20260520.zip
+/*.txt
+/*.mjs
+/*.py
+/CONTEXT_MEMORY.5e0ad837-c1c9-4e57-ad9a-41d59ddf2fc4.log
+/CONTEXT_MEMORY.md

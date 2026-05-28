@@ -142,9 +142,9 @@ export async function createEmployeeAction(data: {
         table_name: 'profiles',
         record_id: newUserId,
         new_values: {
-          email: data.email,
-          first_name: data.firstName,
-          last_name: data.lastName,
+          email: finalEmail,
+          first_name: firstName,
+          last_name: lastName,
           role: data.role,
           phone: data.phone,
           department_id: data.departmentId || null,
