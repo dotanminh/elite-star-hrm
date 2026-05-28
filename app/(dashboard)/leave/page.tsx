@@ -109,13 +109,13 @@ export default function LeavePage() {
 
     setFormSubmitting(true);
     try {
-      // Rule: Nghỉ nửa ngày buổi sáng sẽ tính là nghỉ nguyên ngày.
+      // Rule: Nghỉ nửa ngày buổi sáng tính là 0.5 ngày, buổi chiều tính là nguyên ngày.
       // We label this in the reason payload clearly.
       const displayDuration = durationLimit === 'full' 
         ? 'Cả ngày' 
         : durationLimit === 'morning' 
-          ? 'Nửa ngày (Sáng - Tính nghỉ nguyên ngày)' 
-          : 'Nửa ngày (Chiều - Tính nghỉ 0.5 ngày)';
+          ? 'Nửa ngày (Sáng - Tính nghỉ 0.5 ngày)' 
+          : 'Nửa ngày (Chiều - Tính nghỉ nguyên ngày)';
 
       const finalReason = `[Thời gian: ${displayDuration}] - ${reason}`;
 
@@ -251,12 +251,12 @@ export default function LeavePage() {
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:outline-teal-700 focus:border-teal-700"
               >
                 <option value="full">Cả ngày (1.0 ngày phép)</option>
-                <option value="morning">Nửa ngày - Buổi sáng (Tính là 1.0 ngày nghỉ)</option>
-                <option value="afternoon">Nửa ngày - Buổi chiều (Tính là 0.5 ngày nghỉ)</option>
+                <option value="morning">Nửa ngày - Buổi sáng (Tính là 0.5 ngày nghỉ)</option>
+                <option value="afternoon">Nửa ngày - Buổi chiều (Tính là 1.0 ngày nghỉ)</option>
               </select>
-              {durationLimit === 'morning' && (
+              {durationLimit === 'afternoon' && (
                 <p className="mt-1 text-[10px] text-amber-600 font-semibold">
-                  ⚠️ Theo quy định Elite Star: Nghỉ nửa ngày buổi sáng tính là nghỉ nguyên ngày.
+                  ⚠️ Theo quy định Elite Star: Nghỉ nửa ngày buổi chiều tính là nghỉ nguyên ngày.
                 </p>
               )}
             </div>
