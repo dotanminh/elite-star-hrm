@@ -188,10 +188,10 @@ export default async function DashboardPage() {
                         <div className="text-[10px] text-slate-400">{log.profiles?.email}</div>
                       </td>
                       <td className="py-3 px-3 text-slate-500 font-medium">
-                        {log.check_in ? new Date(log.check_in).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : '--:--'}
+                        {log.check_in ? new Date(log.check_in).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Ho_Chi_Minh'}) : '--:--'}
                       </td>
                       <td className="py-3 px-3 text-slate-500 font-medium">
-                        {log.check_out ? new Date(log.check_out).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : '--:--'}
+                        {log.check_out ? new Date(log.check_out).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Ho_Chi_Minh'}) : '--:--'}
                       </td>
                       <td className="py-3 px-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
