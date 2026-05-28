@@ -186,8 +186,12 @@ export function SidebarNav({ role, isCollapsed = false }: SidebarNavProps) {
       {/* Category 1: Cá Nhân */}
       <div className="space-y-2">
         {!isCollapsed ? (
-          <div className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 transition-opacity duration-300">
-            Cá nhân
+          <div className="flex items-center space-x-2 px-3 mb-2.5 transition-opacity duration-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-teal-500 dark:bg-teal-400 shadow-[0_0_8px_rgba(20,184,166,0.5)] animate-pulse" />
+            <span className="text-[9.5px] font-black uppercase tracking-[0.2em] text-slate-450 dark:text-slate-500 text-glow-teal">
+              Cá nhân
+            </span>
+            <div className="flex-1 h-[1px] bg-gradient-to-r from-slate-200/80 via-slate-100/30 to-transparent dark:from-slate-800/50 dark:via-slate-850/15 dark:to-transparent" />
           </div>
         ) : (
           <div className="w-8 h-[1px] bg-slate-200 dark:bg-slate-800 mx-auto mb-3" />
@@ -199,10 +203,14 @@ export function SidebarNav({ role, isCollapsed = false }: SidebarNavProps) {
 
       {/* Category 2: Quản Trị */}
       {isAdminOrHr && (
-        <div className={`space-y-2 pt-4 border-t border-slate-100 dark:border-slate-850/50`}>
+        <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-850/50">
           {!isCollapsed ? (
-            <div className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 transition-opacity duration-300">
-              Quản trị
+            <div className="flex items-center space-x-2 px-3 mb-2.5 transition-opacity duration-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-lime-500 dark:bg-lime-400 shadow-[0_0_8px_rgba(132,204,22,0.5)] animate-pulse" />
+              <span className="text-[9.5px] font-black uppercase tracking-[0.2em] text-slate-450 dark:text-slate-500 text-glow-lime">
+                Quản trị
+              </span>
+              <div className="flex-1 h-[1px] bg-gradient-to-r from-slate-200/80 via-slate-100/30 to-transparent dark:from-slate-800/50 dark:via-slate-850/15 dark:to-transparent" />
             </div>
           ) : (
             <div className="w-8 h-[1px] bg-slate-200 dark:bg-slate-800 mx-auto my-3" />

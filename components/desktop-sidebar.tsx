@@ -72,9 +72,12 @@ export function DesktopSidebar() {
                 alt="Elite Star" 
                 className="w-[160px] h-auto object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300 dark:invert-[0.1]" 
               />
-              <span className="text-[11px] text-teal-700 dark:text-teal-400 font-black tracking-widest uppercase mt-3 whitespace-nowrap">
-                HỆ THỐNG ELITE STAR HRM
-              </span>
+              <div className="px-3 py-1 mt-3.5 rounded-full bg-teal-500/5 dark:bg-teal-500/10 border border-teal-500/15 dark:border-teal-400/15 backdrop-blur-md shadow-[0_0_15px_rgba(20,184,166,0.03)] hover:border-teal-500/30 transition-all duration-300">
+                <span className="text-[9.5px] font-black tracking-[0.18em] uppercase bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-600 dark:from-teal-400 dark:via-emerald-400 dark:to-lime-400 bg-clip-text text-transparent drop-shadow-sm whitespace-nowrap">
+                  ELITE STAR HRM SYSTEM
+                </span>
+              </div>
+
             </>
           )}
         </div>
