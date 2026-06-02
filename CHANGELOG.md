@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1] - 2026-06-02
+
+### Fixed
+- **Manual Attendance Logs with Missing Times (`app/(dashboard)/attendance/manage/page.tsx`, `app/(dashboard)/payroll/page.tsx`)**:
+  - Fixed an issue where manual clock-in logs (added via "Thêm Bù Công" with blank check-in/out times) default to 'X' (absence) in the timesheet grid export and 0 valid days in payroll diligence calculations.
+  - Updated timesheet grid export to default logs with status 'present' or 'late' but missing time stamps to 'V' (present, worked full day).
+  - Updated payroll page calculations to recognize logs with status 'present' or 'late' but missing check-in/out timestamps as valid work days (1.0 công).
+
 ## [1.7.0] - 2026-06-02
 
 ### Added

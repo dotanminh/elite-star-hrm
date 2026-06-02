@@ -322,8 +322,14 @@ export default function ManageAttendancePage() {
                 if (diffHours >= 7) {
                   symbol = 'V';
                   totalWorkDays += 1;
+                } else {
+                  symbol = 'X';
                 }
                 totalHours += diffHours;
+              } else {
+                // If present/late but missing check-in/out times (manual bù công), default to present (V)
+                symbol = 'V';
+                totalWorkDays += 1;
               }
             } else if (logForDate.status === 'half_day') {
               symbol = 'V/2';

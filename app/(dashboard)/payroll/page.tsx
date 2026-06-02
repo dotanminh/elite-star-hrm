@@ -193,7 +193,8 @@ export default function PayrollPage() {
 
         // Must be 'present' or 'late'
         if (!log.check_in || !log.check_out) {
-          totalInvalidDays += 1;
+          // If check_in or check_out is missing, but status is present or late (manual entry), treat as valid full day
+          totalValidDays += 1;
           return;
         }
 
@@ -238,6 +239,9 @@ export default function PayrollPage() {
               if (diffHours >= 7) {
                 isValid = true;
               }
+            } else {
+              // Manual entry with missing check_in/out but status is present/late
+              isValid = true;
             }
           }
         }
