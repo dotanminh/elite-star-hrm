@@ -324,11 +324,9 @@ export default function ManageAttendancePage() {
 
           if (hasLeave) {
             symbol = 'P';
-            countP += 1;
           } else if (logForDate) {
             if (logForDate.status === 'on_leave') {
               symbol = 'P';
-              countP += 1;
             } else if (logForDate.status === 'present' || logForDate.status === 'late') {
               if (logForDate.check_in && logForDate.check_out) {
                 const checkInTime = new Date(logForDate.check_in).getTime();
@@ -337,29 +335,34 @@ export default function ManageAttendancePage() {
                 if (diffHours >= 7) {
                   symbol = 'V';
                   totalWorkDays += 1;
-                  countV += 1;
                 } else {
                   symbol = 'X';
-                  countX += 1;
                 }
                 totalHours += diffHours;
               } else {
                 // If present/late but missing check-in/out times (manual bù công), default to present (V)
                 symbol = 'V';
                 totalWorkDays += 1;
-                countV += 1;
               }
             } else if (logForDate.status === 'half_day') {
               symbol = 'V/2';
               totalWorkDays += 0.5;
-              countV2 += 1;
               if (logForDate.check_in && logForDate.check_out) {
                 const checkInTime = new Date(logForDate.check_in).getTime();
                 const checkOutTime = new Date(logForDate.check_out).getTime();
                 totalHours += (checkOutTime - checkInTime) / (1000 * 60 * 60);
               }
             }
-          } else {
+          }
+
+          // Increment counters based on final symbol
+          if (symbol === 'V') {
+            countV += 1;
+          } else if (symbol === 'V/2') {
+            countV2 += 1;
+          } else if (symbol === 'P') {
+            countP += 1;
+          } else if (symbol === 'X') {
             countX += 1;
           }
 

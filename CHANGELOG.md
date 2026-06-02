@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.3] - 2026-06-02
+
+### Fixed
+- **Excel Timesheet Absent Days Calculation (`app/(dashboard)/attendance/manage/page.tsx`)**:
+  - Fixed a calculation bug where employees with explicit "absent" database logs (such as Đỗ Tấn Minh and Nguyễn Thị Thu Thảo) showed `0` for the "Số ngày nghỉ" (Leave/Absent Days) column.
+  - Refactored calculation counters (`countV`, `countV2`, `countP`, `countX`) to increment directly based on the final symbol assigned to each date cell (`V`, `V/2`, `P`, `X`). This guarantees that calculated totals always perfectly match the timesheet grid cells.
+
 ## [1.7.2] - 2026-06-02
 
 ### Added
