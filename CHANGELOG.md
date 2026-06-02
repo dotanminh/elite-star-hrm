@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-06-02
+
+### Added
+- **Professional Excel Timesheet Styling (`app/(dashboard)/attendance/manage/page.tsx`)**:
+  - Integrated `xlsx-js-style` package to replace standard `xlsx` for styling cell objects.
+  - Formatted the first row (headers) as bold, center-aligned (left-aligned for names and departments), with a light gray background (`#F3F4F6`), and thin gray borders (`#9CA3AF`).
+  - Added thin grid borders to all data rows and styled the symbols `V` (worked, emerald green text, light green bg), `V/2` (half-day, amber text, light amber bg), `P` (leave, blue text, light blue bg) and `X` (absence, gray text).
+  - Merged columns A through the last column for Note rows to prevent truncation and clipping.
+  - Set note title section `GHI CHÚ QUY TẮC TÍNH CÔNG & KỶ LUẬT ELITE STAR:` to bold, size 11, dark red color (`#991B1B`).
+  - Set custom row heights (26pt for headers, 22pt for data rows, 20pt-24pt for notes/spacers) for a polished presentation.
+
 ## [1.6.0] - 2026-06-02
 
 ### Fixed

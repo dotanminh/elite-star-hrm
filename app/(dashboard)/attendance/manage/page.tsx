@@ -18,7 +18,7 @@ import {
   Calendar,
   Download
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 export default function ManageAttendancePage() {
   const { profile: currentUser } = useProfile();
@@ -351,12 +351,12 @@ export default function ManageAttendancePage() {
 
       // Add Notes
       aoaData.push(['GHI CHÚ QUY TẮC TÍNH CÔNG & KỶ LUẬT ELITE STAR:']);
-      aoaData.push(['- Thưởng chuyên cần:', '500.000 đ', 'Điều kiện: Nghỉ <= 2 ngày trong tháng và không nghỉ Thứ 7 / Chủ nhật']);
-      aoaData.push(['- Hạn định nghỉ:', 'Tối đa 2 ngày trong tháng']);
-      aoaData.push(['- Nghỉ nửa buổi sáng:', 'Xem như nghỉ nửa ngày (trừ 0.5 công, ghi nhận V/2)']);
-      aoaData.push(['- Nghỉ nửa buổi chiều tối:', 'Xem như nghỉ cả ngày (trừ 1 công, ghi nhận X)']);
-      aoaData.push(['- Không ở đúng vị trí:', 'Giảm trừ 50.000 đ / lần phát hiện']);
-      aoaData.push(['- Phát hiện chửi thề:', 'Giảm trừ 50.000 đ / lần phát hiện']);
+      aoaData.push(['- Thưởng chuyên cần: 500.000 đ (Điều kiện: Nghỉ <= 2 ngày trong tháng và không nghỉ Thứ 7 / Chủ nhật)']);
+      aoaData.push(['- Hạn định nghỉ: Tối đa 2 ngày trong tháng']);
+      aoaData.push(['- Nghỉ nửa buổi sáng: Xem như nghỉ nửa ngày (trừ 0.5 công, ghi nhận V/2)']);
+      aoaData.push(['- Nghỉ nửa buổi chiều tối: Xem như nghỉ cả ngày (trừ 1 công, ghi nhận X)']);
+      aoaData.push(['- Không ở đúng vị trí: Giảm trừ 50.000 đ / lần phát hiện']);
+      aoaData.push(['- Phát hiện chửi thề: Giảm trừ 50.000 đ / lần phát hiện']);
 
       // Create sheet from AOA
       const worksheet = XLSX.utils.aoa_to_sheet(aoaData);
@@ -374,6 +374,115 @@ export default function ManageAttendancePage() {
       colWidths.push({ wch: 15 }); // Tổng giờ làm
 
       worksheet['!cols'] = colWidths;
+
+      // Apply row heights (Header: 26pt, Data rows: 22pt, Spacer & Notes: 20pt)
+      const rowHeights: any[] = [];
+      rowHeights.push({ hpt: 26 }); // Header row
+      employeesToExport.forEach(() => {
+        rowHeights.push({ hpt: 22 }); // Employee data rows
+      });
+      rowHeights.push({ hpt: 20 }); // Spacer row 1
+      rowHeights.push({ hpt: 20 }); // Spacer row 2
+      rowHeights.push({ hpt: 24 }); // Notes title row
+      for (let i = 0; i < 6; i++) {
+        rowHeights.push({ hpt: 20 }); // Notes rule rows
+      }
+      worksheet['!rows'] = rowHeights;
+
+      // Add merges for Note rows to prevent text clipping
+      const merges: any[] = [];
+      const noteStartRowIdx = employeesToExport.length + 3; // 0-based index in aoaData
+      const totalCols = headers.length;
+      for (let r = noteStartRowIdx; r < noteStartRowIdx + 7; r++) {
+        merges.push({
+          s: { r: r, c: 0 },
+          e: { r: r, c: totalCols - 1 }
+        });
+      }
+      worksheet['!merges'] = merges;
+
+      // Apply professional styles to cells
+      for (const cellRef in worksheet) {
+        if (cellRef.startsWith('!')) continue;
+        const cell = worksheet[cellRef];
+        const match = cellRef.match(/^([A-Z]+)([0-9]+)$/);
+        if (!match) continue;
+        const col = match[1];
+        const row = parseInt(match[2], 10); // 1-based Excel row number
+
+        // 1. Header row
+        if (row === 1) {
+          cell.s = {
+            font: { name: 'Arial', sz: 10, bold: true, color: { rgb: '1F2937' } },
+            fill: { fgColor: { rgb: 'F3F4F6' } }, // Premium light gray background
+            alignment: { 
+              horizontal: (col === 'A' || col === 'B' || col === 'C') ? 'left' : 'center', 
+              vertical: 'center', 
+              wrapText: true 
+            },
+            border: {
+              top: { style: 'thin', color: { rgb: '9CA3AF' } },
+              bottom: { style: 'thin', color: { rgb: '9CA3AF' } },
+              left: { style: 'thin', color: { rgb: '9CA3AF' } },
+              right: { style: 'thin', color: { rgb: '9CA3AF' } }
+            }
+          };
+        } 
+        // 2. Data rows
+        else if (row >= 2 && row <= employeesToExport.length + 1) {
+          let align = 'center';
+          if (col === 'B' || col === 'C') {
+            align = 'left';
+          }
+          
+          let cellStyle: any = {
+            font: { name: 'Arial', sz: 10, color: { rgb: '1F2937' } },
+            alignment: { horizontal: align, vertical: 'center' },
+            border: {
+              top: { style: 'thin', color: { rgb: 'E5E7EB' } },
+              bottom: { style: 'thin', color: { rgb: 'E5E7EB' } },
+              left: { style: 'thin', color: { rgb: 'E5E7EB' } },
+              right: { style: 'thin', color: { rgb: 'E5E7EB' } }
+            }
+          };
+
+          // Apply color based on symbol
+          if (cell.v === 'V') {
+            cellStyle.font.bold = true;
+            cellStyle.font.color = { rgb: '047857' }; // Emerald Green
+            cellStyle.fill = { fgColor: { rgb: 'ECFDF5' } }; // Light green bg
+          } else if (cell.v === 'V/2') {
+            cellStyle.font.bold = true;
+            cellStyle.font.color = { rgb: 'D97706' }; // Amber
+            cellStyle.fill = { fgColor: { rgb: 'FFFBEB' } }; // Light amber bg
+          } else if (cell.v === 'P') {
+            cellStyle.font.bold = true;
+            cellStyle.font.color = { rgb: '2563EB' }; // Blue
+            cellStyle.fill = { fgColor: { rgb: 'EFF6FF' } }; // Light blue bg
+          } else if (cell.v === 'X') {
+            cellStyle.font.color = { rgb: '9CA3AF' }; // Slate gray for absence/not-worked
+          }
+
+          cell.s = cellStyle;
+        } 
+        // 3. Note rows
+        else if (row >= employeesToExport.length + 4) {
+          // Note title row
+          if (row === employeesToExport.length + 4) {
+            cell.s = {
+              font: { name: 'Arial', sz: 11, bold: true, color: { rgb: '991B1B' } }, // Slate/Red for note title
+              alignment: { horizontal: 'left', vertical: 'center' }
+            };
+          } 
+          // Note rules rows
+          else {
+            cell.s = {
+              font: { name: 'Arial', sz: 10, color: { rgb: '4B5563' } },
+              alignment: { horizontal: 'left', vertical: 'center' }
+            };
+          }
+        }
+      }
 
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Bảng Công');
