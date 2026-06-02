@@ -16,6 +16,7 @@ export interface UserProfile {
   phone: string | null;
   status: 'active' | 'suspended' | 'terminated';
   hire_date: string;
+  avatar_url?: string | null;
 }
 
 interface ProfileContextType {

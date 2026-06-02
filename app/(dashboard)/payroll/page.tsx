@@ -29,6 +29,13 @@ const formatVND = (value: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
+// Helper to format date as DD/MM/YYYY
+const formatDateDMY = (dateStr: string) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 // Helper to get default payroll period
 const getDefaultPayrollPeriod = () => {
   const date = new Date();
@@ -106,6 +113,7 @@ export default function PayrollPage() {
         const { data: empData, error: empError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, employee_code, role, status, hire_date, basic_salary, allowance, departments(name), titles(name)')
+          .eq('status', 'active')
           .order('last_name');
             
         if (empError) throw empError;
@@ -166,6 +174,24 @@ export default function PayrollPage() {
       let totalHours = 0;
 
       empLogs.forEach(log => {
+        if (log.status === 'absent' || log.status === 'on_leave') {
+          totalInvalidDays += 1;
+          return;
+        }
+
+        if (log.status === 'half_day') {
+          totalValidDays += 0.5;
+          totalInvalidDays += 0.5;
+          if (log.check_in && log.check_out) {
+            const checkIn = new Date(log.check_in);
+            const checkOut = new Date(log.check_out);
+            const diffHours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
+            totalHours += diffHours;
+          }
+          return;
+        }
+
+        // Must be 'present' or 'late'
         if (!log.check_in || !log.check_out) {
           totalInvalidDays += 1;
           return;
@@ -203,12 +229,16 @@ export default function PayrollPage() {
         const logForDate = empLogs.find(l => l.work_date === dateStr);
         
         let isValid = false;
-        if (logForDate && logForDate.check_in && logForDate.check_out) {
-          const checkIn = new Date(logForDate.check_in);
-          const checkOut = new Date(logForDate.check_out);
-          const diffHours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
-          if (diffHours >= 7) {
-            isValid = true;
+        if (logForDate) {
+          if (logForDate.status === 'present' || logForDate.status === 'late') {
+            if (logForDate.check_in && logForDate.check_out) {
+              const checkIn = new Date(logForDate.check_in);
+              const checkOut = new Date(logForDate.check_out);
+              const diffHours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
+              if (diffHours >= 7) {
+                isValid = true;
+              }
+            }
           }
         }
         
@@ -1007,8 +1037,8 @@ export default function PayrollPage() {
               <div>
                 Công chuẩn: <strong className="text-slate-700">{payslipModal.employee.totalDaysInPeriod} ngày</strong>
               </div>
-              <div>
-                Đi làm thực tế: <strong className="text-emerald-700 text-sm">{payslipModal.employee.totalValidDays} ngày</strong>
+              <div className="col-span-2">
+                Đi làm thực tế: <strong className="text-emerald-700 text-sm">{payslipModal.employee.totalValidDays} ngày</strong> <span className="text-slate-500 font-normal ml-1">(từ {formatDateDMY(startDate)} đến {formatDateDMY(endDate)})</span>
               </div>
             </div>
 

@@ -15,8 +15,10 @@ import {
   Loader2, 
   X,
   PlusCircle,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export default function ManageAttendancePage() {
   const { profile: currentUser } = useProfile();
@@ -24,6 +26,7 @@ export default function ManageAttendancePage() {
 
   const [logs, setLogs] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [formSubmitting, setFormSubmitting] = useState(false);
 
@@ -54,19 +57,36 @@ export default function ManageAttendancePage() {
     try {
       setLoading(true);
       
-      // Fetch Employees for dropdown
+      // Fetch Employees for dropdown (only active employees)
       const { data: empData } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, employee_code, departments(name)')
+        .select('id, first_name, last_name, employee_code, status, departments(name)')
+        .eq('status', 'active')
         .order('last_name');
       setEmployees(empData || []);
+
+      // Fetch approved leave requests for the period
+      let leaveQuery = supabase
+        .from('leave_requests')
+        .select('id, employee_id, start_date, end_date, status, leave_type')
+        .eq('status', 'approved');
+
+      if (startDate) {
+        leaveQuery = leaveQuery.gte('end_date', startDate);
+      }
+      if (endDate) {
+        leaveQuery = leaveQuery.lte('start_date', endDate);
+      }
+
+      const { data: leavesData } = await leaveQuery;
+      setLeaveRequests(leavesData || []);
 
       // Fetch Attendance Logs for the selected date
       let query = supabase
         .from('attendance_logs')
         .select(`
           *,
-          profiles (first_name, last_name, employee_code, departments(name))
+          profiles (first_name, last_name, employee_code, status, departments(name))
         `)
         .order('check_in', { ascending: false });
 
@@ -217,6 +237,178 @@ export default function ManageAttendancePage() {
     }
   };
 
+  const handleExportExcel = () => {
+    try {
+      const logsToExport = selectedLogIds.length > 0
+        ? filteredLogs.filter(log => selectedLogIds.includes(log.id))
+        : filteredLogs;
+
+      // Generate date array
+      if (!startDate || !endDate) {
+        toast.error('Vui lòng chọn khoảng ngày lọc trước khi xuất file');
+        return;
+      }
+
+      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+
+      const start = new Date(startYear, startMonth - 1, startDay);
+      const end = new Date(endYear, endMonth - 1, endDay);
+
+      const datesArray: string[] = [];
+      let current = new Date(start);
+      while (current <= end) {
+        const y = current.getFullYear();
+        const m = String(current.getMonth() + 1).padStart(2, '0');
+        const d = String(current.getDate()).padStart(2, '0');
+        datesArray.push(`${y}-${m}-${d}`);
+        current.setDate(current.getDate() + 1);
+      }
+
+      // Get employees to export (Default to all active employees; if specific logs selected, filter to those employees)
+      let employeesToExport = employees.filter(emp => emp.status === 'active');
+      if (selectedLogIds.length > 0) {
+        const uniqueEmployeeIds = Array.from(new Set(logsToExport.map(l => l.employee_id)));
+        employeesToExport = employeesToExport.filter(emp => uniqueEmployeeIds.includes(emp.id));
+      }
+
+      if (employeesToExport.length === 0) {
+        toast.error('Không tìm thấy thông tin nhân viên tương ứng để xuất file');
+        return;
+      }
+
+      // Prepare headers
+      const dateHeaders = datesArray.map(dateStr => {
+        const [, m, d] = dateStr.split('-');
+        return `${d}/${m}`;
+      });
+      const headers = ['Mã NV', 'Họ tên', 'Bộ phận', ...dateHeaders, 'Tổng ngày công', 'Tổng giờ làm'];
+
+      // Build AOA (Array of Arrays)
+      const aoaData: any[][] = [];
+      aoaData.push(headers);
+
+      employeesToExport.forEach(emp => {
+        const empRow: any[] = [
+          emp.employee_code || '',
+          `${emp.last_name || ''} ${emp.first_name || ''}`.trim(),
+          emp.departments?.name || '',
+        ];
+
+        let totalWorkDays = 0;
+        let totalHours = 0;
+
+        datesArray.forEach(dateStr => {
+          // Look in all logs (not just logsToExport, to give complete timesheet of selected employees)
+          const logForDate = logs.find(l => l.employee_id === emp.id && l.work_date === dateStr);
+          const hasLeave = leaveRequests.some(lr => 
+            lr.employee_id === emp.id && 
+            dateStr >= lr.start_date && 
+            dateStr <= lr.end_date
+          );
+
+          let symbol = 'X';
+
+          if (hasLeave) {
+            symbol = 'P';
+          } else if (logForDate) {
+            if (logForDate.status === 'on_leave') {
+              symbol = 'P';
+            } else if (logForDate.status === 'present' || logForDate.status === 'late') {
+              if (logForDate.check_in && logForDate.check_out) {
+                const checkInTime = new Date(logForDate.check_in).getTime();
+                const checkOutTime = new Date(logForDate.check_out).getTime();
+                const diffHours = (checkOutTime - checkInTime) / (1000 * 60 * 60);
+                if (diffHours >= 7) {
+                  symbol = 'V';
+                  totalWorkDays += 1;
+                }
+                totalHours += diffHours;
+              }
+            } else if (logForDate.status === 'half_day') {
+              symbol = 'V/2';
+              totalWorkDays += 0.5;
+              if (logForDate.check_in && logForDate.check_out) {
+                const checkInTime = new Date(logForDate.check_in).getTime();
+                const checkOutTime = new Date(logForDate.check_out).getTime();
+                totalHours += (checkOutTime - checkInTime) / (1000 * 60 * 60);
+              }
+            }
+          }
+
+          empRow.push(symbol);
+        });
+
+        empRow.push(totalWorkDays);
+        empRow.push(parseFloat(totalHours.toFixed(1)));
+
+        aoaData.push(empRow);
+      });
+
+      // Add empty rows to space out Notes
+      aoaData.push([]);
+      aoaData.push([]);
+
+      // Add Notes
+      aoaData.push(['GHI CHÚ QUY TẮC TÍNH CÔNG & KỶ LUẬT ELITE STAR:']);
+      aoaData.push(['- Thưởng chuyên cần:', '500.000 đ', 'Điều kiện: Nghỉ <= 2 ngày trong tháng và không nghỉ Thứ 7 / Chủ nhật']);
+      aoaData.push(['- Hạn định nghỉ:', 'Tối đa 2 ngày trong tháng']);
+      aoaData.push(['- Nghỉ nửa buổi sáng:', 'Xem như nghỉ nửa ngày (trừ 0.5 công, ghi nhận V/2)']);
+      aoaData.push(['- Nghỉ nửa buổi chiều tối:', 'Xem như nghỉ cả ngày (trừ 1 công, ghi nhận X)']);
+      aoaData.push(['- Không ở đúng vị trí:', 'Giảm trừ 50.000 đ / lần phát hiện']);
+      aoaData.push(['- Phát hiện chửi thề:', 'Giảm trừ 50.000 đ / lần phát hiện']);
+
+      // Create sheet from AOA
+      const worksheet = XLSX.utils.aoa_to_sheet(aoaData);
+
+      // Configure column widths
+      const colWidths = [
+        { wch: 12 }, // Mã NV
+        { wch: 25 }, // Họ tên
+        { wch: 18 }, // Bộ phận
+      ];
+      dateHeaders.forEach(() => {
+        colWidths.push({ wch: 8 }); // Date columns
+      });
+      colWidths.push({ wch: 15 }); // Tổng ngày công
+      colWidths.push({ wch: 15 }); // Tổng giờ làm
+
+      worksheet['!cols'] = colWidths;
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Bảng Công');
+
+      // Generate filename based on date filters
+      const formatDateStr = (dateStr: string) => {
+        if (!dateStr) return '';
+        const [y, m, d] = dateStr.split('-');
+        return `${d}-${m}-${y}`;
+      };
+
+      const startLabel = startDate ? formatDateStr(startDate) : '';
+      const endLabel = endDate ? formatDateStr(endDate) : '';
+      let filename = 'Bang_Cham_Cong_Elite_Star';
+      if (startLabel && endLabel) {
+        filename += `_${startLabel}_den_${endLabel}`;
+      } else if (startLabel) {
+        filename += `_tu_${startLabel}`;
+      } else if (endLabel) {
+        filename += `_den_${endLabel}`;
+      } else {
+        const todayStr = formatDateStr(new Date().toISOString().split('T')[0]);
+        filename += `_${todayStr}`;
+      }
+      filename += '.xlsx';
+
+      // Export file
+      XLSX.writeFile(workbook, filename);
+      toast.success(`Đã xuất bảng công thành công: ${filename}`);
+    } catch (error: any) {
+      console.error(error);
+      toast.error('Lỗi khi xuất bảng công Excel');
+    }
+  };
+
   const toggleSelectAll = () => {
     if (selectedLogIds.length === filteredLogs.length) {
       setSelectedLogIds([]);
@@ -266,6 +458,13 @@ export default function ManageAttendancePage() {
               Xóa {selectedLogIds.length} mục
             </button>
           )}
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors min-h-[44px]"
+          >
+            <Download className="h-4 w-4" />
+            Xuất Excel
+          </button>
           <button
             onClick={() => {
               resetForm();

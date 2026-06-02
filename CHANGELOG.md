@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-06-02
+
+### Fixed
+- **Attendance Management Excel Export Data Sync (`app/(dashboard)/attendance/manage/page.tsx`)**:
+  - Filtered out non-active status profiles (`profiles.status = 'active'`) to exclude resigned/terminated employees (such as Đặng Ngọc Nhã Như) from both the management dropdowns and the Excel export.
+  - Dynamically fetched approved leave requests (`leave_requests.status = 'approved'`) overlapping the selected timesheet period.
+  - Placed a 'P' (Phép) symbol in the Excel timesheet cells on dates matching approved leave request ranges, and ensured leaves do not increment `totalWorkDays` to correctly scale down work days.
+
+## [1.5.0] - 2026-06-02
+
+### Changed
+- **Attendance Management Excel Export Grid Redesign (`app/(dashboard)/attendance/manage/page.tsx`)**:
+  - Redesigned the export output from raw sequential rows to a comprehensive **Timesheet Grid (Bảng lưới chấm công)**.
+  - Set columns dynamically: Leftmost columns show Employee Code, Full Name, and Department; middle columns show dates (`DD/MM`) in the filtered range; rightmost columns show computed Total Work Days and Total Hours Worked.
+  - Set cell values: 'V' for worked days (hours >= 7), 'V/2' for half days (morning time off), and 'X' for full absences/leaves or missing logs.
+  - Added a dedicated formatted **Notes (Ghi chú)** section at the bottom of the worksheet describing internal payroll, allowed leaves, half-day calculations, and disciplinary deduction rules.
+
+## [1.4.0] - 2026-06-02
+
+### Added
+- **Attendance Management Excel Export (`app/(dashboard)/attendance/manage/page.tsx`)**:
+  - Integrated `xlsx` (SheetJS) package for native binary client-side Excel file generation.
+  - Implemented the "Xuất Excel" action button in the management dashboard utilizing deep green Glassmorphic styling.
+  - Coded `handleExportExcel` which formats attendance data into structured spreadsheet columns (NV Code, Name, Department, Date, Check-in, Check-out, Status, Total Hours, check-in IP, check-out IP).
+  - Translated status codes to Viet translation mapping and implemented dynamic column width auto-fitting to prevent content truncation.
+  - Enabled targeted exporting using table selection checkboxes (if active) or fallback to exporting all currently filtered records.
+  - Generated dynamic filename based on period range labels (`Bang_Cham_Cong_Elite_Star_[startDate]_den_[endDate].xlsx`).
+
+## [1.3.0] - 2026-06-02
+
+### Fixed
+- **Payroll Page (`app/(dashboard)/payroll/page.tsx`)**:
+  - Fixed logic discrepancy between attendance logs and payroll calculations where status was ignored.
+  - Added checks for `log.status` in `payrollData` memoization and calculations. Logs with `absent` or `on_leave` now correctly count as `0` valid days, and `half_day` counts as `0.5` valid days.
+  - Correctly added absent, on leave, and half day logs to `missingDates` array to ensure accurate Diligence (Chuyên cần) eligibility evaluations.
+- **Type Definitions (`components/profile-provider.tsx`, `app/(dashboard)/layout.tsx`)**:
+  - Resolved TypeScript errors by defining and mapping the pre-existing database column `avatar_url` inside `UserProfile` interface and dashboard hydration layout.
+
 ## [1.2.0] - 2026-05-27
 
 ### Added

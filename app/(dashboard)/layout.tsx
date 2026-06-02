@@ -26,7 +26,7 @@ export default async function DashboardLayout({
   // Retrieve matching profile
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, email, first_name, last_name, role, department_id, title_id, phone, status, hire_date')
+    .select('id, email, first_name, last_name, role, department_id, title_id, phone, status, hire_date, avatar_url')
     .eq('id', user.id)
     .single();
 
@@ -47,6 +47,7 @@ export default async function DashboardLayout({
     phone: profile.phone,
     status: profile.status as 'active' | 'suspended' | 'terminated',
     hire_date: profile.hire_date,
+    avatar_url: profile.avatar_url,
   };
 
   const displayRole = roleLabels[typedProfile.role] || typedProfile.role;
