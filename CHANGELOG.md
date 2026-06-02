@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.2] - 2026-06-02
+
+### Added
+- **Excel Timesheet Work and Leave Count Columns (`app/(dashboard)/attendance/manage/page.tsx`)**:
+  - Added new summary columns "Số ngày đi làm" (Worked Days) and "Số ngày nghỉ" (Leave/Absent Days) to each employee's row in the Excel spreadsheet.
+  - Implemented exact count calculations: worked days are computed as V + 0.5 * V/2, and leave/absent days are computed as X + P + 0.5 * V/2.
+  - Dynamically adjusted Excel column widths and note merges to support the new columns cleanly.
+
 ## [1.7.1] - 2026-06-02
 
 ### Fixed

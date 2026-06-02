@@ -282,7 +282,16 @@ export default function ManageAttendancePage() {
         const [, m, d] = dateStr.split('-');
         return `${d}/${m}`;
       });
-      const headers = ['Mã NV', 'Họ tên', 'Bộ phận', ...dateHeaders, 'Tổng ngày công', 'Tổng giờ làm'];
+      const headers = [
+        'Mã NV', 
+        'Họ tên', 
+        'Bộ phận', 
+        ...dateHeaders, 
+        'Tổng ngày công', 
+        'Số ngày đi làm', 
+        'Số ngày nghỉ', 
+        'Tổng giờ làm'
+      ];
 
       // Build AOA (Array of Arrays)
       const aoaData: any[][] = [];
@@ -297,6 +306,10 @@ export default function ManageAttendancePage() {
 
         let totalWorkDays = 0;
         let totalHours = 0;
+        let countV = 0;
+        let countV2 = 0;
+        let countP = 0;
+        let countX = 0;
 
         datesArray.forEach(dateStr => {
           // Look in all logs (not just logsToExport, to give complete timesheet of selected employees)
@@ -311,9 +324,11 @@ export default function ManageAttendancePage() {
 
           if (hasLeave) {
             symbol = 'P';
+            countP += 1;
           } else if (logForDate) {
             if (logForDate.status === 'on_leave') {
               symbol = 'P';
+              countP += 1;
             } else if (logForDate.status === 'present' || logForDate.status === 'late') {
               if (logForDate.check_in && logForDate.check_out) {
                 const checkInTime = new Date(logForDate.check_in).getTime();
@@ -322,31 +337,42 @@ export default function ManageAttendancePage() {
                 if (diffHours >= 7) {
                   symbol = 'V';
                   totalWorkDays += 1;
+                  countV += 1;
                 } else {
                   symbol = 'X';
+                  countX += 1;
                 }
                 totalHours += diffHours;
               } else {
                 // If present/late but missing check-in/out times (manual bù công), default to present (V)
                 symbol = 'V';
                 totalWorkDays += 1;
+                countV += 1;
               }
             } else if (logForDate.status === 'half_day') {
               symbol = 'V/2';
               totalWorkDays += 0.5;
+              countV2 += 1;
               if (logForDate.check_in && logForDate.check_out) {
                 const checkInTime = new Date(logForDate.check_in).getTime();
                 const checkOutTime = new Date(logForDate.check_out).getTime();
                 totalHours += (checkOutTime - checkInTime) / (1000 * 60 * 60);
               }
             }
+          } else {
+            countX += 1;
           }
 
           empRow.push(symbol);
         });
 
-        empRow.push(totalWorkDays);
-        empRow.push(parseFloat(totalHours.toFixed(1)));
+        const workedDays = countV + (0.5 * countV2);
+        const offDays = countX + countP + (0.5 * countV2);
+
+        empRow.push(totalWorkDays); // Tổng ngày công
+        empRow.push(workedDays);    // Số ngày đi làm
+        empRow.push(offDays);       // Số ngày nghỉ
+        empRow.push(parseFloat(totalHours.toFixed(1))); // Tổng giờ làm
 
         aoaData.push(empRow);
       });
@@ -377,6 +403,8 @@ export default function ManageAttendancePage() {
         colWidths.push({ wch: 8 }); // Date columns
       });
       colWidths.push({ wch: 15 }); // Tổng ngày công
+      colWidths.push({ wch: 15 }); // Số ngày đi làm
+      colWidths.push({ wch: 15 }); // Số ngày nghỉ
       colWidths.push({ wch: 15 }); // Tổng giờ làm
 
       worksheet['!cols'] = colWidths;
