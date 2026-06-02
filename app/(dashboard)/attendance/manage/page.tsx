@@ -530,12 +530,12 @@ export default function ManageAttendancePage() {
             
             <form onSubmit={handleEditManual} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Ngày làm việc</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Ngày làm việc (Không thể thay đổi)</label>
                 <input
                   type="date"
                   value={workDate}
-                  onChange={(e) => setWorkDate(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-teal-700 min-h-[40px]"
+                  disabled
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 text-slate-500 border-slate-200 cursor-not-allowed min-h-[40px]"
                 />
               </div>
 
