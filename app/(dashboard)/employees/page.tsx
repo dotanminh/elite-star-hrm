@@ -573,6 +573,9 @@ export default function EmployeesPage() {
                     <option value="employee">{empText.roleEmployee}</option>
                     <option value="manager">{empText.roleManager}</option>
                     <option value="hr">{empText.roleHR}</option>
+                    {currentUser?.role === 'admin' && (
+                      <option value="admin">{roleLabels.admin}</option>
+                    )}
                   </select>
                 </div>
               </div>
@@ -922,6 +925,9 @@ export default function EmployeesPage() {
                     <option value="employee">{roleLabels.employee}</option>
                     <option value="manager">{roleLabels.manager}</option>
                     <option value="hr">{roleLabels.hr}</option>
+                    {(currentUser?.role === 'admin' || activeEmployee?.role === 'admin') && (
+                      <option value="admin">{roleLabels.admin}</option>
+                    )}
                   </select>
                 </div>
               </div>
